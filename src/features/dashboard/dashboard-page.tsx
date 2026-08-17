@@ -13,75 +13,37 @@ import { PageHeader } from "@/components/shared/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { equipmentTypes, supportTypes } from "@/config/catalogs"
+import { listAreas } from "@/features/areas/area-repository"
 import { getAuthSession } from "@/features/auth/auth-service"
-
-const metrics = [
-  {
-    label: "Diagnósticos registrados",
-    value: "428",
-    note: "Repositorio histórico",
-    icon: ClipboardCheck,
-    color: "bg-primary/8 text-primary",
-  },
-  {
-    label: "Equipos registrados",
-    value: "215",
-    note: "Inventario institucional",
-    icon: Laptop,
-    color: "bg-cyan-50 text-cyan-700",
-  },
-  {
-    label: "Empleados",
-    value: "96",
-    note: "En 18 áreas",
-    icon: Users,
-    color: "bg-amber-50 text-amber-700",
-  },
-  {
-    label: "Realizados este mes",
-    value: "32",
-    note: "+8 frente al mes anterior",
-    icon: FileClock,
-    color: "bg-violet-50 text-violet-700",
-  },
-]
-
-const recentDiagnoses = [
-  {
-    id: "DG-000428",
-    equipment: "Dell Latitude 5420",
-    code: "UNI-00234",
-    area: "Registro",
-    type: "Diagnóstico",
-    date: "16 Ago, 10:35",
-  },
-  {
-    id: "DG-000427",
-    equipment: "HP LaserJet Pro M404",
-    code: "UNI-00128",
-    area: "Auditoría",
-    type: "Mantenimiento preventivo",
-    date: "15 Ago, 14:20",
-  },
-  {
-    id: "DG-000426",
-    equipment: "Dell OptiPlex 7090",
-    code: "UNI-00387",
-    area: "Recursos Humanos",
-    type: "Instalación de software",
-    date: "14 Ago, 09:10",
-  },
-]
-
-const equipmentDistribution = [
-  { label: "Laptops", value: 42 },
-  { label: "Desktop", value: 31 },
-  { label: "Impresoras", value: 18 },
-  { label: "Otros", value: 9 },
-]
+import { listDiagnoses } from "@/features/diagnoses/diagnosis-repository"
+import { listEquipment } from "@/features/equipment/equipment-repository"
+import { listEmployees } from "@/features/employees/employee-repository"
+import { formatDateTime } from "@/lib/formatters"
 
 export function DashboardPage() {
   const firstName = getAuthSession()?.fullName.split(" ")[0] ?? "Usuario"
+  const diagnoses = listDiagnoses()
+  const equipment = listEquipment()
+  const employees = listEmployees()
+  const areas = listAreas()
+  const currentMonth = toMonthKey(new Date())
+  const diagnosesThisMonth = diagnoses.filter((diagnosis) => toMonthKey(new Date(diagnosis.startedAt)) === currentMonth)
+  const metrics = [
+    { label: "Diagnósticos registrados", value: diagnoses.length, note: "Repositorio histórico", icon: ClipboardCheck, color: "bg-primary/8 text-primary" },
+    { label: "Equipos registrados", value: equipment.length, note: "Inventario institucional", icon: Laptop, color: "bg-cyan-50 text-cyan-700" },
+    { label: "Empleados", value: employees.length, note: `En ${areas.length} áreas`, icon: Users, color: "bg-amber-50 text-amber-700" },
+    { label: "Realizados este mes", value: diagnosesThisMonth.length, note: "Actividad documentada", icon: FileClock, color: "bg-violet-50 text-violet-700" },
+  ]
+  const recentDiagnoses = [...diagnoses].sort((left, right) => right.startedAt.localeCompare(left.startedAt)).slice(0, 3)
+  const distributionCounts = diagnosesThisMonth.reduce((counts, diagnosis) => {
+    counts.set(diagnosis.snapshot.equipment.type, (counts.get(diagnosis.snapshot.equipment.type) ?? 0) + 1)
+    return counts
+  }, new Map<string, number>())
+  const equipmentDistribution = [...distributionCounts.entries()]
+    .map(([type, count]) => ({ label: equipmentTypes.find((item) => item.value === type)?.label ?? type, value: Math.round((count / Math.max(diagnosesThisMonth.length, 1)) * 100) }))
+    .sort((left, right) => right.value - left.value)
+    .slice(0, 4)
 
   return (
     <div className="space-y-7">
@@ -144,18 +106,18 @@ export function DashboardPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium group-hover:text-primary">{item.equipment}</p>
+                    <p className="font-medium group-hover:text-primary">{item.snapshot.equipment.brand} {item.snapshot.equipment.model}</p>
                     <Badge variant="secondary" className="font-mono text-[0.68rem]">
-                      {item.code}
+                      {item.snapshot.equipment.uniCode}
                     </Badge>
                   </div>
                   <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {item.type} · {item.area}
+                    {item.supportType === "OTHER" ? item.supportTypeDetail ?? "Otro" : supportTypes.find((type) => type.value === item.supportType)?.label ?? item.supportType} · {item.snapshot.area.name}
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-3 sm:block sm:text-right">
-                  <p className="text-xs font-medium">{item.id}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{item.date}</p>
+                  <p className="text-xs font-medium">{item.code}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.startedAt)}</p>
                 </div>
               </Link>
             ))}
@@ -173,7 +135,7 @@ export function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-5 px-5">
-            {equipmentDistribution.map((item) => (
+            {equipmentDistribution.length ? equipmentDistribution.map((item) => (
               <div key={item.label}>
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{item.label}</span>
@@ -186,10 +148,14 @@ export function DashboardPage() {
                   />
                 </div>
               </div>
-            ))}
+            )) : <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Todavía no hay diagnósticos este mes.</p>}
           </CardContent>
         </Card>
       </section>
     </div>
   )
+}
+
+function toMonthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
 }

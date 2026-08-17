@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { equipmentTypes } from "@/config/catalogs"
 import { listAreas } from "@/features/areas/area-repository"
+import { listDiagnoses } from "@/features/diagnoses/diagnosis-repository"
 import {
   createEquipmentColumns,
   equipmentTableFeatures,
@@ -39,6 +40,13 @@ export function EquipmentListPage() {
   const [pendingEquipment, setPendingEquipment] = useState<Equipment | null>(null)
   const areas = useMemo(() => listAreas(), [])
   const employees = useMemo(() => listEmployees(), [])
+  const diagnosisCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    listDiagnoses().forEach((diagnosis) => {
+      counts.set(diagnosis.equipmentId, (counts.get(diagnosis.equipmentId) ?? 0) + 1)
+    })
+    return counts
+  }, [])
   const areaNames = useMemo(() => new Map(areas.map((area) => [area.id, area.name])), [areas])
   const employeeNames = useMemo(() => new Map(employees.map((employee) => [employee.id, employee.fullName])), [employees])
   const typeLabels = useMemo(() => new Map(equipmentTypes.map((type) => [type.value, type.label])), [])
@@ -48,9 +56,9 @@ export function EquipmentListPage() {
       typeLabel: typeLabels.get(equipment.type) ?? equipment.type,
       responsibleName: equipment.currentResponsibleEmployeeId ? employeeNames.get(equipment.currentResponsibleEmployeeId) ?? "Responsable no disponible" : "Sin asignar",
       areaName: equipment.currentAreaId ? areaNames.get(equipment.currentAreaId) ?? "Área no disponible" : "Sin asignar",
-      diagnosisCount: 0,
+      diagnosisCount: diagnosisCounts.get(equipment.id) ?? 0,
     })),
-    [areaNames, employeeNames, equipmentList, typeLabels],
+    [areaNames, diagnosisCounts, employeeNames, equipmentList, typeLabels],
   )
   const columns = useMemo(() => createEquipmentColumns({ onStatusRequest: setPendingEquipment }), [])
   const table = useTable({

@@ -122,7 +122,13 @@
 
   .print-document {
     min-height: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
     box-shadow: none !important;
+    outline: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
   body {

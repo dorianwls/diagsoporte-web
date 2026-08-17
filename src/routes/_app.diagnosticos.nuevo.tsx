@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { DiagnosisFormPlaceholder } from "@/features/diagnoses/diagnosis-form-placeholder"
+import { DiagnosisFormPage } from "@/features/diagnoses/diagnosis-form-page"
 
 export const Route = createFileRoute("/_app/diagnosticos/nuevo")({
-  component: () => <DiagnosisFormPlaceholder mode="create" />,
+  component: DiagnosisFormPage,
 })

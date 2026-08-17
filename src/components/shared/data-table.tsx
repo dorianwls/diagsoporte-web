@@ -48,7 +48,7 @@ export function DataTable<TFeatures extends TableFeatures, TData extends RowData
               {row.getAllCells().map((cell) => (
                 <TableCell
                   key={cell.id}
-                  className={cell.column.id === "actions" ? "px-4" : "px-4 py-3.5"}
+                  className={cell.column.id === "actions" ? "px-4" : "whitespace-normal px-4 py-3.5"}
                 >
                   <table.FlexRender cell={cell} />
                 </TableCell>

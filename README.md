@@ -49,4 +49,6 @@ Los módulos de Áreas, Empleados y Equipos incluyen formularios crear/editar co
 
 El inventario de Equipos valida Código UNI y número de serie únicos, permite asignar responsable y área actual, y deja preparada la ficha donde se mostrará el historial de diagnósticos técnicos.
 
+El módulo de Diagnósticos permite crear y editar intervenciones, conserva snapshots históricos, ofrece búsqueda y filtros, conecta el historial por equipo y genera el reporte institucional para impresión, Word (`.docx`) y PDF.
+
 Los datos demostrativos de estos catálogos se guardan en `localStorage`. Esta capa simula el contrato de un servicio y deberá sustituirse por la API del backend sin cambiar la experiencia de los formularios.
