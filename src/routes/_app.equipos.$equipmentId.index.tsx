@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { EquipmentHistoryPage } from "@/features/equipment/equipment-pages"
+import { EquipmentDetailPage } from "@/features/equipment/equipment-detail-page"
 
 export const Route = createFileRoute("/_app/equipos/$equipmentId/")({
-  component: EquipmentHistoryPage,
+  component: EquipmentDetailRoute,
 })
+
+function EquipmentDetailRoute() {
+  const { equipmentId } = Route.useParams()
+  return <EquipmentDetailPage equipmentId={equipmentId} />
+}

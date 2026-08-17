@@ -76,6 +76,8 @@ export function getPageTitle(pathname: string) {
   if (pathname === "/empleados/nuevo") return "Registrar empleado"
   if (/^\/empleados\/[^/]+\/editar$/.test(pathname)) return "Editar empleado"
   if (/^\/empleados\/[^/]+$/.test(pathname)) return "Ficha del empleado"
+  if (pathname === "/equipos/nuevo") return "Registrar equipo"
+  if (/^\/equipos\/[^/]+\/editar$/.test(pathname)) return "Editar equipo"
   if (pathname.includes("/imprimir")) return "Vista de impresión"
   if (pathname.includes("/editar")) return "Editar registro"
   if (/^\/diagnosticos\/[^/]+$/.test(pathname)) return "Detalle del diagnóstico"

@@ -29,6 +29,7 @@ import { Route as AppDiagnosticosDiagnosisIdImprimirRouteImport } from './routes
 import { Route as AppEmpleadosEmployeeIdIndexRouteImport } from './routes/_app.empleados.$employeeId.index'
 import { Route as AppEmpleadosEmployeeIdEditarRouteImport } from './routes/_app.empleados.$employeeId.editar'
 import { Route as AppEquiposEquipmentIdIndexRouteImport } from './routes/_app.equipos.$equipmentId.index'
+import { Route as AppEquiposEquipmentIdEditarRouteImport } from './routes/_app.equipos.$equipmentId.editar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -136,6 +137,12 @@ const AppEquiposEquipmentIdIndexRoute =
     path: '/equipos/$equipmentId/',
     getParentRoute: () => AppRoute,
   } as any)
+const AppEquiposEquipmentIdEditarRoute =
+  AppEquiposEquipmentIdEditarRouteImport.update({
+    id: '/equipos/$equipmentId/editar',
+    path: '/equipos/$equipmentId/editar',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/diagnosticos/$diagnosisId/editar': typeof AppDiagnosticosDiagnosisIdEditarRoute
   '/diagnosticos/$diagnosisId/imprimir': typeof AppDiagnosticosDiagnosisIdImprimirRoute
   '/empleados/$employeeId/editar': typeof AppEmpleadosEmployeeIdEditarRoute
+  '/equipos/$equipmentId/editar': typeof AppEquiposEquipmentIdEditarRoute
   '/diagnosticos/$diagnosisId/': typeof AppDiagnosticosDiagnosisIdIndexRoute
   '/empleados/$employeeId/': typeof AppEmpleadosEmployeeIdIndexRoute
   '/equipos/$equipmentId/': typeof AppEquiposEquipmentIdIndexRoute
@@ -175,6 +183,7 @@ export interface FileRoutesByTo {
   '/diagnosticos/$diagnosisId/editar': typeof AppDiagnosticosDiagnosisIdEditarRoute
   '/diagnosticos/$diagnosisId/imprimir': typeof AppDiagnosticosDiagnosisIdImprimirRoute
   '/empleados/$employeeId/editar': typeof AppEmpleadosEmployeeIdEditarRoute
+  '/equipos/$equipmentId/editar': typeof AppEquiposEquipmentIdEditarRoute
   '/diagnosticos/$diagnosisId': typeof AppDiagnosticosDiagnosisIdIndexRoute
   '/empleados/$employeeId': typeof AppEmpleadosEmployeeIdIndexRoute
   '/equipos/$equipmentId': typeof AppEquiposEquipmentIdIndexRoute
@@ -198,6 +207,7 @@ export interface FileRoutesById {
   '/_app/diagnosticos/$diagnosisId/editar': typeof AppDiagnosticosDiagnosisIdEditarRoute
   '/_app/diagnosticos/$diagnosisId/imprimir': typeof AppDiagnosticosDiagnosisIdImprimirRoute
   '/_app/empleados/$employeeId/editar': typeof AppEmpleadosEmployeeIdEditarRoute
+  '/_app/equipos/$equipmentId/editar': typeof AppEquiposEquipmentIdEditarRoute
   '/_app/diagnosticos/$diagnosisId/': typeof AppDiagnosticosDiagnosisIdIndexRoute
   '/_app/empleados/$employeeId/': typeof AppEmpleadosEmployeeIdIndexRoute
   '/_app/equipos/$equipmentId/': typeof AppEquiposEquipmentIdIndexRoute
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/diagnosticos/$diagnosisId/editar'
     | '/diagnosticos/$diagnosisId/imprimir'
     | '/empleados/$employeeId/editar'
+    | '/equipos/$equipmentId/editar'
     | '/diagnosticos/$diagnosisId/'
     | '/empleados/$employeeId/'
     | '/equipos/$equipmentId/'
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/diagnosticos/$diagnosisId/editar'
     | '/diagnosticos/$diagnosisId/imprimir'
     | '/empleados/$employeeId/editar'
+    | '/equipos/$equipmentId/editar'
     | '/diagnosticos/$diagnosisId'
     | '/empleados/$employeeId'
     | '/equipos/$equipmentId'
@@ -264,6 +276,7 @@ export interface FileRouteTypes {
     | '/_app/diagnosticos/$diagnosisId/editar'
     | '/_app/diagnosticos/$diagnosisId/imprimir'
     | '/_app/empleados/$employeeId/editar'
+    | '/_app/equipos/$equipmentId/editar'
     | '/_app/diagnosticos/$diagnosisId/'
     | '/_app/empleados/$employeeId/'
     | '/_app/equipos/$equipmentId/'
@@ -417,6 +430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEquiposEquipmentIdIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/equipos/$equipmentId/editar': {
+      id: '/_app/equipos/$equipmentId/editar'
+      path: '/equipos/$equipmentId/editar'
+      fullPath: '/equipos/$equipmentId/editar'
+      preLoaderRoute: typeof AppEquiposEquipmentIdEditarRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -435,6 +455,7 @@ interface AppRouteChildren {
   AppDiagnosticosDiagnosisIdEditarRoute: typeof AppDiagnosticosDiagnosisIdEditarRoute
   AppDiagnosticosDiagnosisIdImprimirRoute: typeof AppDiagnosticosDiagnosisIdImprimirRoute
   AppEmpleadosEmployeeIdEditarRoute: typeof AppEmpleadosEmployeeIdEditarRoute
+  AppEquiposEquipmentIdEditarRoute: typeof AppEquiposEquipmentIdEditarRoute
   AppDiagnosticosDiagnosisIdIndexRoute: typeof AppDiagnosticosDiagnosisIdIndexRoute
   AppEmpleadosEmployeeIdIndexRoute: typeof AppEmpleadosEmployeeIdIndexRoute
   AppEquiposEquipmentIdIndexRoute: typeof AppEquiposEquipmentIdIndexRoute
@@ -456,6 +477,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDiagnosticosDiagnosisIdImprimirRoute:
     AppDiagnosticosDiagnosisIdImprimirRoute,
   AppEmpleadosEmployeeIdEditarRoute: AppEmpleadosEmployeeIdEditarRoute,
+  AppEquiposEquipmentIdEditarRoute: AppEquiposEquipmentIdEditarRoute,
   AppDiagnosticosDiagnosisIdIndexRoute: AppDiagnosticosDiagnosisIdIndexRoute,
   AppEmpleadosEmployeeIdIndexRoute: AppEmpleadosEmployeeIdIndexRoute,
   AppEquiposEquipmentIdIndexRoute: AppEquiposEquipmentIdIndexRoute,

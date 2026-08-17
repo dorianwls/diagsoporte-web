@@ -45,6 +45,8 @@ Usuario: dorian
 Contraseña: soporte123
 ```
 
-Los módulos de Áreas y Empleados incluyen formularios crear/editar con React Hook Form y Zod, tablas interactivas con TanStack Table y persistencia local demostrativa. Empleados incorpora búsqueda, filtros, paginación, ficha individual y desactivación sin borrar su historial.
+Los módulos de Áreas, Empleados y Equipos incluyen formularios crear/editar con React Hook Form y Zod, tablas interactivas con TanStack Table y persistencia local demostrativa. Los catálogos incorporan búsqueda, filtros, paginación, fichas individuales y desactivación sin borrar el historial.
+
+El inventario de Equipos valida Código UNI y número de serie únicos, permite asignar responsable y área actual, y deja preparada la ficha donde se mostrará el historial de diagnósticos técnicos.
 
 Los datos demostrativos de estos catálogos se guardan en `localStorage`. Esta capa simula el contrato de un servicio y deberá sustituirse por la API del backend sin cambiar la experiencia de los formularios.
