@@ -22,6 +22,7 @@ import { Route as AppEmpleadosIndexRouteImport } from './routes/_app.empleados.i
 import { Route as AppEmpleadosNuevoRouteImport } from './routes/_app.empleados.nuevo'
 import { Route as AppEquiposIndexRouteImport } from './routes/_app.equipos.index'
 import { Route as AppEquiposNuevoRouteImport } from './routes/_app.equipos.nuevo'
+import { Route as AppAreasAreaIdEditarRouteImport } from './routes/_app.areas.$areaId.editar'
 import { Route as AppDiagnosticosDiagnosisIdIndexRouteImport } from './routes/_app.diagnosticos.$diagnosisId.index'
 import { Route as AppDiagnosticosDiagnosisIdEditarRouteImport } from './routes/_app.diagnosticos.$diagnosisId.editar'
 import { Route as AppDiagnosticosDiagnosisIdImprimirRouteImport } from './routes/_app.diagnosticos.$diagnosisId.imprimir'
@@ -92,6 +93,11 @@ const AppEquiposNuevoRoute = AppEquiposNuevoRouteImport.update({
   path: '/equipos/nuevo',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAreasAreaIdEditarRoute = AppAreasAreaIdEditarRouteImport.update({
+  id: '/areas/$areaId/editar',
+  path: '/areas/$areaId/editar',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDiagnosticosDiagnosisIdIndexRoute =
   AppDiagnosticosDiagnosisIdIndexRouteImport.update({
     id: '/diagnosticos/$diagnosisId/',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/diagnosticos/': typeof AppDiagnosticosIndexRoute
   '/empleados/': typeof AppEmpleadosIndexRoute
   '/equipos/': typeof AppEquiposIndexRoute
+  '/areas/$areaId/editar': typeof AppAreasAreaIdEditarRoute
   '/diagnosticos/$diagnosisId/editar': typeof AppDiagnosticosDiagnosisIdEditarRoute
   '/diagnosticos/$diagnosisId/imprimir': typeof AppDiagnosticosDiagnosisIdImprimirRoute
   '/diagnosticos/$diagnosisId/': typeof AppDiagnosticosDiagnosisIdIndexRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/diagnosticos': typeof AppDiagnosticosIndexRoute
   '/empleados': typeof AppEmpleadosIndexRoute
   '/equipos': typeof AppEquiposIndexRoute
+  '/areas/$areaId/editar': typeof AppAreasAreaIdEditarRoute
   '/diagnosticos/$diagnosisId/editar': typeof AppDiagnosticosDiagnosisIdEditarRoute
   '/diagnosticos/$diagnosisId/imprimir': typeof AppDiagnosticosDiagnosisIdImprimirRoute
   '/diagnosticos/$diagnosisId': typeof AppDiagnosticosDiagnosisIdIndexRoute
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/_app/diagnosticos/': typeof AppDiagnosticosIndexRoute
   '/_app/empleados/': typeof AppEmpleadosIndexRoute
   '/_app/equipos/': typeof AppEquiposIndexRoute
+  '/_app/areas/$areaId/editar': typeof AppAreasAreaIdEditarRoute
   '/_app/diagnosticos/$diagnosisId/editar': typeof AppDiagnosticosDiagnosisIdEditarRoute
   '/_app/diagnosticos/$diagnosisId/imprimir': typeof AppDiagnosticosDiagnosisIdImprimirRoute
   '/_app/diagnosticos/$diagnosisId/': typeof AppDiagnosticosDiagnosisIdIndexRoute
@@ -188,6 +197,7 @@ export interface FileRouteTypes {
     | '/diagnosticos/'
     | '/empleados/'
     | '/equipos/'
+    | '/areas/$areaId/editar'
     | '/diagnosticos/$diagnosisId/editar'
     | '/diagnosticos/$diagnosisId/imprimir'
     | '/diagnosticos/$diagnosisId/'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/diagnosticos'
     | '/empleados'
     | '/equipos'
+    | '/areas/$areaId/editar'
     | '/diagnosticos/$diagnosisId/editar'
     | '/diagnosticos/$diagnosisId/imprimir'
     | '/diagnosticos/$diagnosisId'
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/_app/diagnosticos/'
     | '/_app/empleados/'
     | '/_app/equipos/'
+    | '/_app/areas/$areaId/editar'
     | '/_app/diagnosticos/$diagnosisId/editar'
     | '/_app/diagnosticos/$diagnosisId/imprimir'
     | '/_app/diagnosticos/$diagnosisId/'
@@ -330,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEquiposNuevoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/areas/$areaId/editar': {
+      id: '/_app/areas/$areaId/editar'
+      path: '/areas/$areaId/editar'
+      fullPath: '/areas/$areaId/editar'
+      preLoaderRoute: typeof AppAreasAreaIdEditarRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/diagnosticos/$diagnosisId/': {
       id: '/_app/diagnosticos/$diagnosisId/'
       path: '/diagnosticos/$diagnosisId'
@@ -372,6 +391,7 @@ interface AppRouteChildren {
   AppDiagnosticosIndexRoute: typeof AppDiagnosticosIndexRoute
   AppEmpleadosIndexRoute: typeof AppEmpleadosIndexRoute
   AppEquiposIndexRoute: typeof AppEquiposIndexRoute
+  AppAreasAreaIdEditarRoute: typeof AppAreasAreaIdEditarRoute
   AppDiagnosticosDiagnosisIdEditarRoute: typeof AppDiagnosticosDiagnosisIdEditarRoute
   AppDiagnosticosDiagnosisIdImprimirRoute: typeof AppDiagnosticosDiagnosisIdImprimirRoute
   AppDiagnosticosDiagnosisIdIndexRoute: typeof AppDiagnosticosDiagnosisIdIndexRoute
@@ -389,6 +409,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDiagnosticosIndexRoute: AppDiagnosticosIndexRoute,
   AppEmpleadosIndexRoute: AppEmpleadosIndexRoute,
   AppEquiposIndexRoute: AppEquiposIndexRoute,
+  AppAreasAreaIdEditarRoute: AppAreasAreaIdEditarRoute,
   AppDiagnosticosDiagnosisIdEditarRoute: AppDiagnosticosDiagnosisIdEditarRoute,
   AppDiagnosticosDiagnosisIdImprimirRoute:
     AppDiagnosticosDiagnosisIdImprimirRoute,

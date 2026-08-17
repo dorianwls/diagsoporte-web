@@ -71,6 +71,8 @@ export const navigationGroups: NavigationGroup[] = [
 
 export function getPageTitle(pathname: string) {
   if (pathname.startsWith("/diagnosticos/nuevo")) return "Nuevo diagnóstico"
+  if (pathname === "/areas/nueva") return "Registrar área"
+  if (/^\/areas\/[^/]+\/editar$/.test(pathname)) return "Editar área"
   if (pathname.includes("/imprimir")) return "Vista de impresión"
   if (pathname.includes("/editar")) return "Editar registro"
   if (/^\/diagnosticos\/[^/]+$/.test(pathname)) return "Detalle del diagnóstico"

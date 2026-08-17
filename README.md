@@ -43,4 +43,4 @@ Usuario: dorian
 Contraseña: soporte123
 ```
 
-Las tablas conectadas, los formularios del dominio y la persistencia se implementarán por funcionalidades en incrementos posteriores.
+El módulo de Áreas ya incluye formulario crear/editar con React Hook Form y Zod, tabla interactiva con TanStack Table y persistencia local demostrativa. Los demás formularios del dominio y la persistencia mediante API se implementarán en incrementos posteriores.
