@@ -4,6 +4,8 @@ import { Building2, CircleOff, Plus, RotateCcw, Search, SlidersHorizontal } from
 import { useTable } from "@tanstack/react-table"
 import { toast } from "sonner"
 
+import { DataTable } from "@/components/shared/data-table"
+import { DataTablePagination } from "@/components/shared/data-table-pagination"
 import { PageHeader } from "@/components/shared/page-header"
 import {
   AlertDialog,
@@ -27,14 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { areaTableFeatures, createAreaColumns } from "@/features/areas/area-columns"
 import { listAreas, setAreaActive } from "@/features/areas/area-repository"
 import type { Area } from "@/types/domain"
@@ -149,98 +143,41 @@ export function AreasPage() {
         </div>
 
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/40">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      className={header.column.id === "actions" ? "w-16 text-right" : "px-4"}
-                    >
-                      {header.isPlaceholder ? null : <table.FlexRender header={header} />}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getAllCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className={cell.column.id === "actions" ? "px-4" : "px-4 py-3.5"}
-                      >
-                        <table.FlexRender cell={cell} />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={columns.length} className="h-72 text-center">
-                    <div className="mx-auto flex max-w-sm flex-col items-center">
-                      <div className="grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
-                        <Building2 className="size-6" />
-                      </div>
-                      <h2 className="mt-4 font-semibold">No encontramos áreas</h2>
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                        Ajuste la búsqueda o el filtro de estado para ver otros resultados.
-                      </p>
-                      <Button variant="outline" size="sm" className="mt-4" onClick={resetFilters}>
-                        Limpiar filtros
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <DataTable
+            table={table}
+            columnCount={columns.length}
+            emptyState={
+              <div className="mx-auto flex max-w-sm flex-col items-center">
+                <div className="grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
+                  <Building2 className="size-6" />
+                </div>
+                <h2 className="mt-4 font-semibold">No encontramos áreas</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Ajuste la búsqueda o el filtro de estado para ver otros resultados.
+                </p>
+                <Button variant="outline" size="sm" className="mt-4" onClick={resetFilters}>
+                  Limpiar filtros
+                </Button>
+              </div>
+            }
+          />
         </CardContent>
 
-        <footer className="flex flex-col gap-3 border-t bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            Mostrando {firstVisibleRow}-{lastVisibleRow} de {filteredRowCount} áreas
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">Filas</span>
-            <Select
-              value={String(pageSize)}
-              onValueChange={(value) => table.setPageSize(Number(value))}
-            >
-              <SelectTrigger size="sm" className="w-18 bg-card">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-              </SelectContent>
-            </Select>
-            <span className="ml-1 text-xs text-muted-foreground">
-              Página {table.state.pagination.pageIndex + 1} de {Math.max(table.getPageCount(), 1)}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Siguiente
-            </Button>
-          </div>
-        </footer>
+        <DataTablePagination
+          entityLabel="áreas"
+          firstVisibleRow={firstVisibleRow}
+          lastVisibleRow={lastVisibleRow}
+          rowCount={filteredRowCount}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
+          pageCount={table.getPageCount()}
+          pageSizeOptions={[5, 10, 20]}
+          canPreviousPage={table.getCanPreviousPage()}
+          canNextPage={table.getCanNextPage()}
+          onPageSizeChange={(value) => table.setPageSize(value)}
+          onPreviousPage={() => table.previousPage()}
+          onNextPage={() => table.nextPage()}
+        />
       </Card>
 
       <AlertDialog
