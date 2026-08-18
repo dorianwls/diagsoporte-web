@@ -16,7 +16,6 @@ import {
   type ColumnDef,
 } from "@tanstack/react-table"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -33,7 +32,6 @@ export interface DiagnosisTableRow extends TechnicalDiagnosis {
   equipmentSearch: string
   responsibleName: string
   areaName: string
-  supportTypeLabel: string
   technicianName: string
 }
 
@@ -87,10 +85,9 @@ export const diagnosisColumns: ColumnDef<typeof diagnosisTableFeatures, Diagnosi
     sortFn: "text",
   },
   {
-    accessorKey: "supportTypeLabel",
-    header: "Tipo de soporte",
-    cell: ({ row }) => <Badge variant="outline" className="font-normal">{row.original.supportTypeLabel}</Badge>,
-    filterFn: "includesString",
+    accessorKey: "supportPerformed",
+    header: "Soporte realizado",
+    cell: ({ row }) => <p className="max-w-52 line-clamp-2 text-sm text-muted-foreground">{row.original.supportPerformed}</p>,
     sortFn: "text",
   },
   {

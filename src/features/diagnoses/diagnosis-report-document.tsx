@@ -1,4 +1,5 @@
-import { equipmentTypes, supportTypes } from "@/config/catalogs"
+import institutionalLetterhead from "@/assets/institutional-letterhead.png"
+import { equipmentTypes } from "@/config/catalogs"
 import { formatLongDate } from "@/lib/formatters"
 import type { TechnicalDiagnosis } from "@/types/domain"
 
@@ -9,18 +10,12 @@ interface DiagnosisReportDocumentProps {
 export function DiagnosisReportDocument({ diagnosis }: DiagnosisReportDocumentProps) {
   const { snapshot } = diagnosis
   const equipmentType = equipmentTypes.find((type) => type.value === snapshot.equipment.type)?.label ?? snapshot.equipment.type
-  const supportType = diagnosis.supportType === "OTHER" ? diagnosis.supportTypeDetail ?? "Otro" : supportTypes.find((type) => type.value === diagnosis.supportType)?.label ?? diagnosis.supportType
 
   return (
-    <article className="print-document mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[13mm] py-[10mm] font-sans text-[10.5px] leading-[1.3] text-slate-950 shadow-sm ring-1 ring-slate-200">
-      <div className="mb-5 h-2 bg-slate-900" />
-      <header className="grid grid-cols-3 items-center gap-5 text-center">
-        <BrandMark title="Gobierno de Reconciliación y Unidad Nacional" subtitle="El Pueblo, Presidente" />
-        <BrandMark title="SETEC" subtitle="Soporte técnico" large />
-        <BrandMark title="UNI · División de Sistemas" subtitle="Información universitaria y Desarrollo Tecnológico" />
-      </header>
-
-      <div className="my-7 text-center"><h1 className="text-[15px] font-bold uppercase tracking-[0.12em]">Reporte de soporte técnico</h1><p className="mt-1 font-mono text-[8px] text-slate-500">{diagnosis.code}</p></div>
+    <article className="print-document relative mx-auto min-h-[279.4mm] w-full max-w-[215.9mm] overflow-hidden bg-white px-[18mm] pb-[37mm] pt-[45mm] font-sans text-[10.5px] leading-[1.3] text-slate-950 shadow-sm ring-1 ring-slate-200">
+      <img src={institutionalLetterhead} alt="" className="pointer-events-none absolute inset-0 size-full object-fill" />
+      <div className="relative z-10">
+      <div className="mb-5 text-center"><h1 className="text-[15px] font-bold uppercase tracking-[0.12em]">Reporte de soporte técnico</h1><p className="mt-1 font-mono text-[8px] text-slate-500">{diagnosis.code}</p></div>
 
       <ReportTable>
         <thead><tr><SectionHeading colSpan={2}>Información general</SectionHeading></tr></thead>
@@ -40,27 +35,17 @@ export function DiagnosisReportDocument({ diagnosis }: DiagnosisReportDocumentPr
         <tbody><tr><td>{equipmentType}</td><td>{snapshot.equipment.brand}</td><td>{snapshot.equipment.uniCode}</td><td>{snapshot.equipment.color ?? "—"}</td><td>{snapshot.equipment.serialNumber}</td><td>{snapshot.equipment.model}</td></tr></tbody>
       </ReportTable>
 
-      <ReportSection title="Tipo de soporte realizado"><ReportList text={supportType} /></ReportSection>
+      <ReportSection title="Tipo de soporte realizado"><ReportList text={diagnosis.supportPerformed} /></ReportSection>
       <ReportSection title="Observaciones Técnicas"><ReportList text={diagnosis.technicalObservations} /></ReportSection>
       <ReportSection title="Diagnóstico"><ReportList text={diagnosis.diagnosis} marker="➤" /></ReportSection>
 
-      <section className="mt-16 grid grid-cols-2 gap-10 px-10 text-center">
+      <section className="mt-12 grid grid-cols-2 gap-10 px-8 text-center">
         <Signature label="Asignado a" name={snapshot.assignedTechnician.fullName} caption="Soporte Técnico" />
         <Signature label="Recibido por" name="" caption="Firma del responsable" />
       </section>
-
-      <footer className="mt-16 grid grid-cols-3 gap-4 border-t border-slate-500 pt-4 text-[8px] text-slate-700">
-        <p>Teléfono institucional<br />Soporte técnico</p>
-        <p className="text-center">www.uni.edu.ni</p>
-        <p className="text-right">Recinto Universitario Simón Bolívar<br />Avenida Universitaria, Managua, Nicaragua</p>
-      </footer>
-      <div className="mt-5 h-2 bg-slate-900" />
+      </div>
     </article>
   )
-}
-
-function BrandMark({ title, subtitle, large = false }: { title: string; subtitle: string; large?: boolean }) {
-  return <div><p className={large ? "text-xl font-black tracking-tight" : "text-[10px] font-bold"}>{title}</p><p className="mt-0.5 text-[7.5px] leading-tight text-slate-600">{subtitle}</p></div>
 }
 
 function ReportTable({ children, className = "" }: { children: React.ReactNode; className?: string }) {

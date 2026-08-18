@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/shared/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { equipmentTypes, supportTypes } from "@/config/catalogs"
+import { equipmentTypes } from "@/config/catalogs"
 import { listAreas } from "@/features/areas/area-repository"
 import { getAuthSession } from "@/features/auth/auth-service"
 import { listDiagnoses } from "@/features/diagnoses/diagnosis-repository"
@@ -112,7 +112,7 @@ export function DashboardPage() {
                     </Badge>
                   </div>
                   <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {item.supportType === "OTHER" ? item.supportTypeDetail ?? "Otro" : supportTypes.find((type) => type.value === item.supportType)?.label ?? item.supportType} · {item.snapshot.area.name}
+                    {item.supportPerformed} · {item.snapshot.area.name}
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-3 sm:block sm:text-right">

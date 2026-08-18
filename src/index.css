@@ -102,8 +102,8 @@
 
 @media print {
   @page {
-    size: A4;
-    margin: 14mm;
+    size: Letter;
+    margin: 0;
   }
 
   .app-chrome,

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { equipmentTypes, supportTypes } from "@/config/catalogs"
+import { equipmentTypes } from "@/config/catalogs"
 import { findAreaById } from "@/features/areas/area-repository"
 import { listDiagnosesByEquipmentId } from "@/features/diagnoses/diagnosis-repository"
 import { findEquipmentById } from "@/features/equipment/equipment-repository"
@@ -85,11 +85,10 @@ export function EquipmentDetailPage({ equipmentId }: EquipmentDetailPageProps) {
           {diagnoses.length ? (
             <div className="divide-y">
               {diagnoses.map((diagnosis) => {
-                const supportLabel = diagnosis.supportType === "OTHER" ? diagnosis.supportTypeDetail ?? "Otro" : supportTypes.find((type) => type.value === diagnosis.supportType)?.label ?? diagnosis.supportType
                 return (
                   <article key={diagnosis.id} className="grid gap-4 p-5 sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-start sm:p-6">
                     <div><p className="text-sm font-semibold">{formatLongDate(diagnosis.startedAt)}</p><p className="mt-1 font-mono text-xs text-muted-foreground">{diagnosis.code}</p></div>
-                    <div><Badge variant="outline" className="font-normal">{supportLabel}</Badge><p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{diagnosis.diagnosis}</p></div>
+                    <div><p className="line-clamp-2 text-sm font-medium">{diagnosis.supportPerformed}</p><p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{diagnosis.diagnosis}</p></div>
                     <div className="flex gap-1 sm:justify-end"><Button asChild variant="ghost" size="icon-sm"><Link to="/diagnosticos/$diagnosisId" params={{ diagnosisId: diagnosis.id }} aria-label={`Ver ${diagnosis.code}`}><Eye /></Link></Button><Button asChild variant="ghost" size="icon-sm"><Link to="/diagnosticos/$diagnosisId/imprimir" params={{ diagnosisId: diagnosis.id }} aria-label={`Imprimir ${diagnosis.code}`}><Printer /></Link></Button></div>
                   </article>
                 )

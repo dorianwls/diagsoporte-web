@@ -1,12 +1,5 @@
 import { z } from "zod"
 
-import { supportTypes, type SupportType } from "@/config/catalogs"
-
-const supportTypeValues = supportTypes.map(({ value }) => value) as [
-  SupportType,
-  ...SupportType[],
-]
-
 export const diagnosisFormSchema = z
   .object({
     responsibleEmployeeId: z.string().min(1, "Seleccione al responsable del equipo"),
@@ -15,11 +8,11 @@ export const diagnosisFormSchema = z
     assignedTechnicianUserId: z.string().min(1, "Seleccione al técnico asignado"),
     startedAt: z.string().min(1, "La fecha de inicio es obligatoria"),
     finishedAt: z.string().min(1, "La fecha de finalización es obligatoria"),
-    supportType: z.enum(supportTypeValues, { error: "Seleccione el tipo de soporte realizado" }),
-    supportTypeDetail: z
+    supportPerformed: z
       .string()
       .trim()
-      .max(120, "El detalle no puede superar los 120 caracteres"),
+      .min(10, "Describa con más detalle el soporte realizado")
+      .max(1500, "El soporte realizado no puede superar los 1500 caracteres"),
     technicalObservations: z
       .string()
       .trim()
@@ -32,14 +25,6 @@ export const diagnosisFormSchema = z
       .max(3000, "El diagnóstico no puede superar los 3000 caracteres"),
   })
   .superRefine((values, context) => {
-    if (values.supportType === "OTHER" && !values.supportTypeDetail) {
-      context.addIssue({
-        code: "custom",
-        path: ["supportTypeDetail"],
-        message: "Especifique el tipo de soporte realizado",
-      })
-    }
-
     if (values.startedAt && values.finishedAt) {
       const startedAt = new Date(values.startedAt).getTime()
       const finishedAt = new Date(values.finishedAt).getTime()

@@ -1,4 +1,4 @@
-import type { EquipmentType, SupportType, UserRole } from "@/config/catalogs"
+import type { EquipmentType, UserRole } from "@/config/catalogs"
 
 export type EntityId = string
 export type IsoDateTime = string
@@ -67,8 +67,7 @@ export interface TechnicalDiagnosis extends AuditableEntity {
   createdByUserId: EntityId
   startedAt: IsoDateTime
   finishedAt: IsoDateTime
-  supportType: SupportType
-  supportTypeDetail?: string
+  supportPerformed: string
   technicalObservations: string
   diagnosis: string
   snapshot: DiagnosisSnapshot

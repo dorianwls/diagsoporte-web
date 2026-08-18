@@ -1,4 +1,5 @@
-import { equipmentTypes, supportTypes } from "@/config/catalogs"
+import institutionalLetterhead from "@/assets/institutional-letterhead.png"
+import { equipmentTypes } from "@/config/catalogs"
 import { formatLongDate } from "@/lib/formatters"
 import type { TechnicalDiagnosis } from "@/types/domain"
 
@@ -7,6 +8,9 @@ export async function exportDiagnosisToWord(diagnosis: TechnicalDiagnosis) {
     AlignmentType,
     BorderStyle,
     Document,
+    Header,
+    HorizontalPositionRelativeFrom,
+    ImageRun,
     Packer,
     Paragraph,
     ShadingType,
@@ -14,8 +18,11 @@ export async function exportDiagnosisToWord(diagnosis: TechnicalDiagnosis) {
     TableCell,
     TableRow,
     TextRun,
+    TextWrappingType,
+    VerticalPositionRelativeFrom,
     WidthType,
   } = await import("docx")
+  const letterheadData = await fetch(institutionalLetterhead).then((response) => response.arrayBuffer())
 
   const border = { style: BorderStyle.SINGLE, size: 4, color: "4B5563" }
   const borders = { top: border, bottom: border, left: border, right: border }
@@ -44,7 +51,6 @@ export async function exportDiagnosisToWord(diagnosis: TechnicalDiagnosis) {
 
   const snapshot = diagnosis.snapshot
   const equipmentType = getEquipmentTypeLabel(diagnosis)
-  const supportType = getSupportTypeLabel(diagnosis)
   const document = new Document({
     creator: "Diagnósticos UNI",
     title: `Reporte de soporte técnico ${diagnosis.code}`,
@@ -57,25 +63,34 @@ export async function exportDiagnosisToWord(diagnosis: TechnicalDiagnosis) {
       {
         properties: {
           page: {
-            size: { width: 11906, height: 16838 },
-            margin: { top: 620, right: 720, bottom: 620, left: 720 },
+            size: { width: 12240, height: 15840 },
+            margin: { top: 2550, right: 1020, bottom: 2100, left: 1020 },
           },
         },
-        children: [
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: noBorders,
-            rows: [
-              new TableRow({
+        headers: {
+          default: new Header({
+            children: [
+              new Paragraph({
                 children: [
-                  new TableCell({ borders: noBorders, children: [paragraph("Gobierno de Reconciliación y Unidad Nacional", true, AlignmentType.CENTER), paragraph("El Pueblo, Presidente", false, AlignmentType.CENTER)] }),
-                  new TableCell({ borders: noBorders, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SETEC", bold: true, size: 32, font: "Arial" })] }), paragraph("Soporte técnico", false, AlignmentType.CENTER)] }),
-                  new TableCell({ borders: noBorders, children: [paragraph("UNI · División de Sistemas", true, AlignmentType.CENTER), paragraph("Información universitaria y Desarrollo Tecnológico", false, AlignmentType.CENTER)] }),
+                  new ImageRun({
+                    type: "png",
+                    data: letterheadData,
+                    transformation: { width: 816, height: 1056 },
+                    floating: {
+                      horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: 0 },
+                      verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, offset: 0 },
+                      behindDocument: true,
+                      allowOverlap: true,
+                      wrap: { type: TextWrappingType.NONE },
+                    },
+                  }),
                 ],
               }),
             ],
           }),
-          new Paragraph({ spacing: { before: 260, after: 40 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "REPORTE DE SOPORTE TÉCNICO", bold: true, size: 26, font: "Arial" })] }),
+        },
+        children: [
+          new Paragraph({ spacing: { before: 0, after: 40 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "REPORTE DE SOPORTE TÉCNICO", bold: true, size: 26, font: "Arial" })] }),
           new Paragraph({ spacing: { before: 0, after: 240 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: diagnosis.code, size: 16, font: "Arial", color: "6B7280" })] }),
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
@@ -95,7 +110,7 @@ export async function exportDiagnosisToWord(diagnosis: TechnicalDiagnosis) {
               new TableRow({ children: [equipmentType, snapshot.equipment.brand, snapshot.equipment.uniCode, snapshot.equipment.color ?? "—", snapshot.equipment.serialNumber, snapshot.equipment.model].map((value) => cell(value)) }),
             ],
           }),
-          new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: sectionRows("Tipo de soporte realizado", supportType) }),
+          new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: sectionRows("Tipo de soporte realizado", diagnosis.supportPerformed) }),
           new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: sectionRows("Observaciones Técnicas", diagnosis.technicalObservations) }),
           new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: sectionRows("Diagnóstico", diagnosis.diagnosis) }),
           new Paragraph({ spacing: { before: 500, after: 0 } }),
@@ -103,12 +118,6 @@ export async function exportDiagnosisToWord(diagnosis: TechnicalDiagnosis) {
             width: { size: 100, type: WidthType.PERCENTAGE },
             borders: noBorders,
             rows: [new TableRow({ children: [signatureCell("ASIGNADO A", snapshot.assignedTechnician.fullName, "Soporte Técnico", TableCell, Paragraph, TextRun, noBorders), signatureCell("RECIBIDO POR", "", "Firma del responsable", TableCell, Paragraph, TextRun, noBorders)] })],
-          }),
-          new Paragraph({ spacing: { before: 500, after: 80 }, border: { top: border }, children: [] }),
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: noBorders,
-            rows: [new TableRow({ children: [new TableCell({ borders: noBorders, children: [paragraph("Teléfono institucional\nSoporte técnico")] }), new TableCell({ borders: noBorders, children: [paragraph("www.uni.edu.ni", false, AlignmentType.CENTER)] }), new TableCell({ borders: noBorders, children: [paragraph("Recinto Universitario Simón Bolívar\nManagua, Nicaragua", false, AlignmentType.RIGHT)] })] })],
           }),
         ],
       },
@@ -121,28 +130,25 @@ export async function exportDiagnosisToWord(diagnosis: TechnicalDiagnosis) {
 
 export async function exportDiagnosisToPdf(diagnosis: TechnicalDiagnosis) {
   const [{ jsPDF }, { autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")])
-  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+  const letterheadDataUrl = await imageUrlToDataUrl(institutionalLetterhead)
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" })
   const snapshot = diagnosis.snapshot
-  const margin = 15
+  const margin = 18
   const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const drawLetterhead = () => pdf.addImage(letterheadDataUrl, "PNG", 0, 0, pageWidth, pageHeight)
+  drawLetterhead()
+  pdf.internal.events.subscribe("addPage", drawLetterhead)
 
-  pdf.setFillColor(30, 41, 59)
-  pdf.rect(margin, 10, pageWidth - margin * 2, 2.5, "F")
   pdf.setFont("helvetica", "bold")
-  pdf.setFontSize(6.5)
-  pdf.text(["Gobierno de Reconciliación", "y Unidad Nacional"], 37, 19, { align: "center" })
-  pdf.setFontSize(15)
-  pdf.text("SETEC", pageWidth / 2, 21, { align: "center" })
-  pdf.setFontSize(8)
-  pdf.text(["UNI · División de Sistemas", "Información universitaria y", "Desarrollo Tecnológico"], pageWidth - 37, 18, { align: "center" })
   pdf.setFontSize(12)
-  pdf.text("REPORTE DE SOPORTE TÉCNICO", pageWidth / 2, 34, { align: "center" })
+  pdf.text("REPORTE DE SOPORTE TÉCNICO", pageWidth / 2, 44, { align: "center" })
   pdf.setFont("helvetica", "normal")
   pdf.setFontSize(6.5)
-  pdf.text(diagnosis.code, pageWidth / 2, 37.5, { align: "center" })
+  pdf.text(diagnosis.code, pageWidth / 2, 47.5, { align: "center" })
 
   autoTable(pdf, {
-    startY: 41,
+    startY: 51,
     margin: { left: margin, right: margin },
     head: [[{ content: "INFORMACIÓN GENERAL", colSpan: 2, styles: { halign: "center" } }]],
     body: [
@@ -157,7 +163,7 @@ export async function exportDiagnosisToPdf(diagnosis: TechnicalDiagnosis) {
     columnStyles: { 0: { cellWidth: 62, fontStyle: "bold" } },
   })
 
-  let currentY = getLastAutoTableY(pdf, 41)
+  let currentY = getLastAutoTableY(pdf, 51)
   autoTable(pdf, {
     startY: currentY,
     margin: { left: margin, right: margin },
@@ -172,7 +178,7 @@ export async function exportDiagnosisToPdf(diagnosis: TechnicalDiagnosis) {
   currentY = getLastAutoTableY(pdf, currentY)
 
   for (const [title, text] of [
-    ["TIPO DE SOPORTE REALIZADO", getSupportTypeLabel(diagnosis)],
+    ["TIPO DE SOPORTE REALIZADO", diagnosis.supportPerformed],
     ["OBSERVACIONES TÉCNICAS", diagnosis.technicalObservations],
     ["DIAGNÓSTICO", diagnosis.diagnosis],
   ]) {
@@ -189,9 +195,9 @@ export async function exportDiagnosisToPdf(diagnosis: TechnicalDiagnosis) {
   }
 
   let signatureY = currentY + 20
-  if (signatureY > 270) {
+  if (signatureY > 238) {
     pdf.addPage()
-    signatureY = 30
+    signatureY = 50
   }
   pdf.setFontSize(8)
   pdf.setFont("helvetica", "bold")
@@ -205,23 +211,11 @@ export async function exportDiagnosisToPdf(diagnosis: TechnicalDiagnosis) {
   pdf.text("Soporte Técnico", 68, signatureY + 4, { align: "center" })
   pdf.text("Firma del responsable", 160, signatureY + 4, { align: "center" })
 
-  const footerY = pdf.internal.pageSize.getHeight() - 17
-  pdf.line(margin, footerY - 4, pageWidth - margin, footerY - 4)
-  pdf.setFontSize(6.5)
-  pdf.text(["Teléfono institucional", "Soporte técnico"], margin, footerY)
-  pdf.text("www.uni.edu.ni", pageWidth / 2, footerY + 1, { align: "center" })
-  pdf.text(["Recinto Universitario Simón Bolívar", "Managua, Nicaragua"], pageWidth - margin, footerY, { align: "right" })
-  pdf.setFillColor(30, 41, 59)
-  pdf.rect(margin, pdf.internal.pageSize.getHeight() - 8, pageWidth - margin * 2, 2.5, "F")
   pdf.save(`${diagnosis.code}-reporte-soporte-tecnico.pdf`)
 }
 
 function getEquipmentTypeLabel(diagnosis: TechnicalDiagnosis) {
   return equipmentTypes.find((type) => type.value === diagnosis.snapshot.equipment.type)?.label ?? diagnosis.snapshot.equipment.type
-}
-
-function getSupportTypeLabel(diagnosis: TechnicalDiagnosis) {
-  return diagnosis.supportType === "OTHER" ? diagnosis.supportTypeDetail ?? "Otro" : supportTypes.find((type) => type.value === diagnosis.supportType)?.label ?? diagnosis.supportType
 }
 
 function reportParagraphs(
@@ -264,4 +258,14 @@ function downloadBlob(blob: Blob, fileName: string) {
 
 function getLastAutoTableY(pdf: object, fallback: number) {
   return (pdf as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? fallback
+}
+
+async function imageUrlToDataUrl(url: string) {
+  const blob = await fetch(url).then((response) => response.blob())
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
 }

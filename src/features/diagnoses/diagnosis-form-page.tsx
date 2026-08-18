@@ -12,7 +12,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { equipmentTypes, supportTypes } from "@/config/catalogs"
+import { equipmentTypes } from "@/config/catalogs"
 import { listAreas } from "@/features/areas/area-repository"
 import { createDiagnosis, findDiagnosisById, updateDiagnosis } from "@/features/diagnoses/diagnosis-repository"
 import { diagnosisFormSchema, type DiagnosisFormValues } from "@/features/diagnoses/diagnosis-schema"
@@ -43,15 +43,13 @@ export function DiagnosisFormPage({ diagnosisId }: DiagnosisFormPageProps) {
       assignedTechnicianUserId: currentDiagnosis?.assignedTechnicianUserId ?? "user-demo-001",
       startedAt: currentDiagnosis ? toDateTimeLocal(currentDiagnosis.startedAt) : toDateTimeLocal(now),
       finishedAt: currentDiagnosis ? toDateTimeLocal(currentDiagnosis.finishedAt) : toDateTimeLocal(oneHourLater),
-      supportType: currentDiagnosis?.supportType ?? "DIAGNOSIS",
-      supportTypeDetail: currentDiagnosis?.supportTypeDetail ?? "",
+      supportPerformed: currentDiagnosis?.supportPerformed ?? "",
       technicalObservations: currentDiagnosis?.technicalObservations ?? "",
       diagnosis: currentDiagnosis?.diagnosis ?? "",
     },
     mode: "onTouched",
   })
   const selectedEquipmentId = useWatch({ control: form.control, name: "equipmentId" })
-  const selectedSupportType = useWatch({ control: form.control, name: "supportType" })
   const selectedEquipment = equipmentList.find((equipment) => equipment.id === selectedEquipmentId)
   const equipmentTypeLabel = equipmentTypes.find((type) => type.value === selectedEquipment?.type)?.label
 
@@ -164,22 +162,14 @@ export function DiagnosisFormPage({ diagnosisId }: DiagnosisFormPageProps) {
 
           <FormCard icon={Wrench} title="Trabajo técnico" description="Diferencia claramente las acciones observadas de la conclusión técnica obtenida.">
             <FieldGroup>
-              <div className="grid gap-6 md:grid-cols-2">
-                <Controller
-                  name="supportType"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor={field.name}>Tipo de soporte realizado</FieldLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger id={field.name} className="h-10 w-full" aria-invalid={fieldState.invalid}><SelectValue /></SelectTrigger>
-                        <SelectContent>{supportTypes.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                      {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                    </Field>
-                  )}
-                />
+              <Field data-invalid={Boolean(form.formState.errors.supportPerformed)}>
+                <FieldLabel htmlFor="supportPerformed">Tipo de soporte realizado</FieldLabel>
+                <Textarea {...form.register("supportPerformed")} id="supportPerformed" rows={5} placeholder="Describa qué trabajo se realizó al equipo. Ej. Revisión e inspección técnica, limpieza interna y configuración del sistema..." aria-invalid={Boolean(form.formState.errors.supportPerformed)} />
+                <FieldDescription>Describa libremente el trabajo técnico realizado al equipo.</FieldDescription>
+                {form.formState.errors.supportPerformed && <FieldError errors={[form.formState.errors.supportPerformed]} />}
+              </Field>
 
+              <div className="max-w-xl">
                 <Controller
                   name="assignedTechnicianUserId"
                   control={form.control}
@@ -195,14 +185,6 @@ export function DiagnosisFormPage({ diagnosisId }: DiagnosisFormPageProps) {
                   )}
                 />
               </div>
-
-              {selectedSupportType === "OTHER" && (
-                <Field data-invalid={Boolean(form.formState.errors.supportTypeDetail)}>
-                  <FieldLabel htmlFor="supportTypeDetail">Especifique el tipo de soporte</FieldLabel>
-                  <Input {...form.register("supportTypeDetail")} id="supportTypeDetail" placeholder="Describa brevemente el trabajo realizado" aria-invalid={Boolean(form.formState.errors.supportTypeDetail)} />
-                  {form.formState.errors.supportTypeDetail && <FieldError errors={[form.formState.errors.supportTypeDetail]} />}
-                </Field>
-              )}
 
               <Field data-invalid={Boolean(form.formState.errors.technicalObservations)}>
                 <FieldLabel htmlFor="technicalObservations">Observaciones Técnicas</FieldLabel>

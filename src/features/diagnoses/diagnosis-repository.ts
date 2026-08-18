@@ -1,6 +1,5 @@
 import { z } from "zod"
 
-import { supportTypes, type SupportType } from "@/config/catalogs"
 import { findAreaById } from "@/features/areas/area-repository"
 import type { DiagnosisFormValues } from "@/features/diagnoses/diagnosis-schema"
 import { findTechnicianByUserId } from "@/features/diagnoses/technician-options"
@@ -9,7 +8,21 @@ import { findEmployeeById } from "@/features/employees/employee-repository"
 import type { DiagnosisSnapshot, TechnicalDiagnosis } from "@/types/domain"
 
 const DIAGNOSES_STORAGE_KEY = "diagsoporte.diagnoses"
-const supportTypeValues = supportTypes.map(({ value }) => value) as [SupportType, ...SupportType[]]
+
+const legacySupportLabels: Record<string, string> = {
+  DIAGNOSIS: "Diagnóstico y revisión técnica del equipo",
+  PREVENTIVE_MAINTENANCE: "Mantenimiento preventivo del equipo",
+  CORRECTIVE_MAINTENANCE: "Mantenimiento correctivo del equipo",
+  SOFTWARE_INSTALLATION: "Instalación de software",
+  CONFIGURATION: "Configuración del equipo",
+  REPAIR: "Reparación del equipo",
+  CLEANING: "Limpieza técnica del equipo",
+  UPDATE: "Actualización del equipo",
+  HARDWARE_REVIEW: "Revisión e inspección técnica del hardware",
+  SOFTWARE_REVIEW: "Revisión técnica del software",
+  PRINTER_CONFIGURATION: "Configuración de impresora",
+  OTHER: "Otro trabajo técnico realizado",
+}
 
 const diagnosisSnapshotSchema = z.object({
   responsible: z.object({ employeeNumber: z.string(), fullName: z.string() }),
@@ -35,7 +48,8 @@ const diagnosisEntitySchema = z.object({
   createdByUserId: z.string(),
   startedAt: z.string(),
   finishedAt: z.string(),
-  supportType: z.enum(supportTypeValues),
+  supportPerformed: z.string().optional(),
+  supportType: z.string().optional(),
   supportTypeDetail: z.string().optional(),
   technicalObservations: z.string(),
   diagnosis: z.string(),
@@ -48,16 +62,16 @@ const diagnosesSchema = z.array(diagnosisEntitySchema)
 
 const seedDiagnoses: TechnicalDiagnosis[] = [
   createSeed({
-    id: "diagnosis-001", code: "DG-000245", responsibleEmployeeId: "employee-001", areaId: "area-002", equipmentId: "equipment-001", assignedTechnicianUserId: "user-demo-001", startedAt: "2026-08-16T14:15:00.000Z", finishedAt: "2026-08-16T15:30:00.000Z", supportType: "DIAGNOSIS", technicalObservations: "Se verificó el funcionamiento del disco duro, memoria RAM, sistema operativo y conectividad. Se detectó lentitud durante el inicio.", diagnosis: "El equipo presenta degradación del disco duro. Se recomienda reemplazar la unidad por un dispositivo SSD.", snapshot: snapshot("000184", "Juan Carlos Pérez López", "Auditoría Interna", "LAPTOP", "Dell", "UNI-00234", "Gris", "8H2L9Q3", "Latitude 5420", "Dorian Lanuza"),
+    id: "diagnosis-001", code: "DG-000245", responsibleEmployeeId: "employee-001", areaId: "area-002", equipmentId: "equipment-001", assignedTechnicianUserId: "user-demo-001", startedAt: "2026-08-16T14:15:00.000Z", finishedAt: "2026-08-16T15:30:00.000Z", supportPerformed: "Diagnóstico y revisión técnica del equipo, incluyendo hardware, sistema operativo y conectividad.", technicalObservations: "Se verificó el funcionamiento del disco duro, memoria RAM, sistema operativo y conectividad. Se detectó lentitud durante el inicio.", diagnosis: "El equipo presenta degradación del disco duro. Se recomienda reemplazar la unidad por un dispositivo SSD.", snapshot: snapshot("000184", "Juan Carlos Pérez López", "Auditoría Interna", "LAPTOP", "Dell", "UNI-00234", "Gris", "8H2L9Q3", "Latitude 5420", "Dorian Lanuza"),
   }),
   createSeed({
-    id: "diagnosis-002", code: "DG-000244", responsibleEmployeeId: "employee-002", areaId: "area-010", equipmentId: "equipment-002", assignedTechnicianUserId: "user-demo-002", startedAt: "2026-08-15T13:10:00.000Z", finishedAt: "2026-08-15T14:05:00.000Z", supportType: "PRINTER_CONFIGURATION", technicalObservations: "Se revisó conectividad de red, cola de impresión y configuración del controlador institucional.", diagnosis: "La impresora funciona correctamente después de reinstalar el controlador y actualizar la dirección de red.", snapshot: snapshot("000237", "María Elena González Ruiz", "Registro Académico", "PRINTER", "HP", "UNI-00128", "Blanco", "VNC3K92184", "LaserJet Pro M404dn", "Carlos Mendoza"),
+    id: "diagnosis-002", code: "DG-000244", responsibleEmployeeId: "employee-002", areaId: "area-010", equipmentId: "equipment-002", assignedTechnicianUserId: "user-demo-002", startedAt: "2026-08-15T13:10:00.000Z", finishedAt: "2026-08-15T14:05:00.000Z", supportPerformed: "Revisión de conectividad y configuración de la impresora institucional.", technicalObservations: "Se revisó conectividad de red, cola de impresión y configuración del controlador institucional.", diagnosis: "La impresora funciona correctamente después de reinstalar el controlador y actualizar la dirección de red.", snapshot: snapshot("000237", "María Elena González Ruiz", "Registro Académico", "PRINTER", "HP", "UNI-00128", "Blanco", "VNC3K92184", "LaserJet Pro M404dn", "Carlos Mendoza"),
   }),
   createSeed({
-    id: "diagnosis-003", code: "DG-000243", responsibleEmployeeId: "employee-004", areaId: "area-004", equipmentId: "equipment-004", assignedTechnicianUserId: "user-demo-001", startedAt: "2026-07-10T14:00:00.000Z", finishedAt: "2026-07-10T15:20:00.000Z", supportType: "HARDWARE_REVIEW", technicalObservations: "El equipo enciende, pero no completa correctamente el proceso de inicio. Durante el encendido se muestra un mensaje relacionado con el sistema de iris automático.", diagnosis: "El proyector presenta una falla en el mecanismo de iris automático que impide su funcionamiento normal. Actualmente no se encuentra en condiciones óptimas para su uso.", snapshot: snapshot("000428", "Ana Lucía Hernández", "Dirección", "PROJECTOR", "Epson", "UNI-00412", "Blanco", "X8LM220394", "PowerLite X49", "Dorian Lanuza"),
+    id: "diagnosis-003", code: "DG-000243", responsibleEmployeeId: "employee-004", areaId: "area-004", equipmentId: "equipment-004", assignedTechnicianUserId: "user-demo-001", startedAt: "2026-07-10T14:00:00.000Z", finishedAt: "2026-07-10T15:20:00.000Z", supportPerformed: "Revisión e inspección técnica del equipo mencionado anteriormente.", technicalObservations: "El equipo enciende, pero no completa correctamente el proceso de inicio. Durante el encendido se muestra un mensaje relacionado con el sistema de iris automático.", diagnosis: "El proyector presenta una falla en el mecanismo de iris automático que impide su funcionamiento normal. Actualmente no se encuentra en condiciones óptimas para su uso.", snapshot: snapshot("000428", "Ana Lucía Hernández", "Dirección", "PROJECTOR", "Epson", "UNI-00412", "Blanco", "X8LM220394", "PowerLite X49", "Dorian Lanuza"),
   }),
   createSeed({
-    id: "diagnosis-004", code: "DG-000242", responsibleEmployeeId: "employee-003", areaId: "area-011", equipmentId: "equipment-003", assignedTechnicianUserId: "user-demo-001", startedAt: "2026-07-02T15:00:00.000Z", finishedAt: "2026-07-02T16:10:00.000Z", supportType: "PREVENTIVE_MAINTENANCE", technicalObservations: "Se realizó limpieza interna, revisión de ventiladores, memoria y almacenamiento, además de actualización del sistema.", diagnosis: "El equipo queda operativo y sin alertas de hardware después del mantenimiento preventivo.", snapshot: snapshot("000312", "Carlos Alberto Mendoza", "Recursos Humanos", "DESKTOP", "Dell", "UNI-00387", "Negro", "4K8P2M1", "OptiPlex 7090", "Dorian Lanuza"),
+    id: "diagnosis-004", code: "DG-000242", responsibleEmployeeId: "employee-003", areaId: "area-011", equipmentId: "equipment-003", assignedTechnicianUserId: "user-demo-001", startedAt: "2026-07-02T15:00:00.000Z", finishedAt: "2026-07-02T16:10:00.000Z", supportPerformed: "Mantenimiento preventivo, limpieza interna y actualización del sistema operativo.", technicalObservations: "Se realizó limpieza interna, revisión de ventiladores, memoria y almacenamiento, además de actualización del sistema.", diagnosis: "El equipo queda operativo y sin alertas de hardware después del mantenimiento preventivo.", snapshot: snapshot("000312", "Carlos Alberto Mendoza", "Recursos Humanos", "DESKTOP", "Dell", "UNI-00387", "Negro", "4K8P2M1", "OptiPlex 7090", "Dorian Lanuza"),
   }),
 ]
 
@@ -70,7 +84,13 @@ export function listDiagnoses(): TechnicalDiagnosis[] {
 
   try {
     const result = diagnosesSchema.safeParse(JSON.parse(storedDiagnoses))
-    if (result.success) return result.data
+    if (result.success) {
+      const migratedDiagnoses = result.data.map(migrateStoredDiagnosis)
+      if (result.data.some((diagnosis) => !diagnosis.supportPerformed)) {
+        writeDiagnoses(migratedDiagnoses)
+      }
+      return migratedDiagnoses
+    }
   } catch {
     // Los datos demostrativos dañados se restauran desde la semilla.
   }
@@ -156,7 +176,6 @@ function toEntityValues(values: DiagnosisFormValues) {
     ...values,
     startedAt: new Date(values.startedAt).toISOString(),
     finishedAt: new Date(values.finishedAt).toISOString(),
-    supportTypeDetail: values.supportType === "OTHER" ? values.supportTypeDetail : undefined,
   }
 }
 
@@ -176,9 +195,7 @@ function simulateRequest() {
   return new Promise((resolve) => setTimeout(resolve, 550))
 }
 
-interface SeedValues extends Omit<TechnicalDiagnosis, "createdByUserId" | "createdAt" | "updatedAt" | "supportTypeDetail"> {
-  supportTypeDetail?: string
-}
+type SeedValues = Omit<TechnicalDiagnosis, "createdByUserId" | "createdAt" | "updatedAt">
 
 function createSeed(values: SeedValues): TechnicalDiagnosis {
   return {
@@ -206,5 +223,19 @@ function snapshot(
     area: { name: areaName },
     equipment: { type, brand, uniCode, color, serialNumber, model },
     assignedTechnician: { fullName: technicianName },
+  }
+}
+
+function migrateStoredDiagnosis(
+  diagnosis: z.infer<typeof diagnosisEntitySchema>,
+): TechnicalDiagnosis {
+  const { supportType, supportTypeDetail, ...currentValues } = diagnosis
+  return {
+    ...currentValues,
+    supportPerformed:
+      diagnosis.supportPerformed ??
+      supportTypeDetail ??
+      legacySupportLabels[supportType ?? ""] ??
+      "Trabajo técnico realizado al equipo",
   }
 }

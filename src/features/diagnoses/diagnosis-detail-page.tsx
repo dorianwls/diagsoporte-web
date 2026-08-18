@@ -2,11 +2,10 @@ import { Link } from "@tanstack/react-router"
 import { CalendarClock, FileOutput, FileText, Laptop, Pencil, Printer, UserRound, Wrench } from "lucide-react"
 
 import { PageHeader } from "@/components/shared/page-header"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { equipmentTypes, supportTypes } from "@/config/catalogs"
+import { equipmentTypes } from "@/config/catalogs"
 import { findDiagnosisById } from "@/features/diagnoses/diagnosis-repository"
 import { formatDateTime } from "@/lib/formatters"
 
@@ -20,7 +19,6 @@ export function DiagnosisDetailPage({ diagnosisId }: DiagnosisDetailPageProps) {
 
   const { snapshot } = diagnosis
   const equipmentType = equipmentTypes.find((type) => type.value === snapshot.equipment.type)?.label ?? snapshot.equipment.type
-  const supportType = diagnosis.supportType === "OTHER" ? diagnosis.supportTypeDetail ?? "Otro" : supportTypes.find((type) => type.value === diagnosis.supportType)?.label ?? diagnosis.supportType
 
   return (
     <div className="space-y-7">
@@ -63,7 +61,7 @@ export function DiagnosisDetailPage({ diagnosisId }: DiagnosisDetailPageProps) {
           <Card className="gap-5 shadow-sm">
             <CardHeader className="border-b"><CardTitle className="flex items-center gap-2"><Wrench className="size-4.5 text-primary" />Trabajo técnico</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo de soporte realizado</p><Badge className="mt-2">{supportType}</Badge></div>
+              <Info label="Tipo de soporte realizado" value={diagnosis.supportPerformed} multiline />
               <Separator />
               <Info label="Observaciones Técnicas" value={diagnosis.technicalObservations} multiline />
               <Separator />

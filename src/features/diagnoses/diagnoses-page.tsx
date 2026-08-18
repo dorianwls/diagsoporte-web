@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { equipmentTypes, supportTypes } from "@/config/catalogs"
+import { equipmentTypes } from "@/config/catalogs"
 import { diagnosisColumns, diagnosisTableFeatures, type DiagnosisTableRow } from "@/features/diagnoses/diagnosis-columns"
 import { listDiagnoses } from "@/features/diagnoses/diagnosis-repository"
 
@@ -19,17 +19,15 @@ export function DiagnosesPage() {
   const diagnoses = useMemo(() => listDiagnoses(), [])
   const [dateFilter, setDateFilter] = useState("")
   const typeLabels = useMemo(() => new Map(equipmentTypes.map((type) => [type.value, type.label])), [])
-  const supportLabels = useMemo(() => new Map(supportTypes.map((type) => [type.value, type.label])), [])
   const allRows = useMemo<DiagnosisTableRow[]>(
     () => diagnoses.map((diagnosis) => ({
       ...diagnosis,
       equipmentSearch: `${typeLabels.get(diagnosis.snapshot.equipment.type) ?? diagnosis.snapshot.equipment.type} ${diagnosis.snapshot.equipment.brand} ${diagnosis.snapshot.equipment.model} ${diagnosis.snapshot.equipment.uniCode} ${diagnosis.snapshot.equipment.serialNumber}`,
       responsibleName: diagnosis.snapshot.responsible.fullName,
       areaName: diagnosis.snapshot.area.name,
-      supportTypeLabel: diagnosis.supportType === "OTHER" ? `Otro${diagnosis.supportTypeDetail ? ` · ${diagnosis.supportTypeDetail}` : ""}` : supportLabels.get(diagnosis.supportType) ?? diagnosis.supportType,
       technicianName: diagnosis.snapshot.assignedTechnician.fullName,
     })),
-    [diagnoses, supportLabels, typeLabels],
+    [diagnoses, typeLabels],
   )
   const rows = useMemo(
     () => dateFilter ? allRows.filter((row) => toLocalDateKey(row.startedAt) === dateFilter) : allRows,
@@ -51,7 +49,6 @@ export function DiagnosesPage() {
   const firstVisibleRow = filteredRowCount === 0 ? 0 : pageIndex * pageSize + 1
   const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredRowCount)
   const areaFilter = String(table.getColumn("areaName")?.getFilterValue() ?? "all")
-  const supportFilter = String(table.getColumn("supportTypeLabel")?.getFilterValue() ?? "all")
   const technicianFilter = String(table.getColumn("technicianName")?.getFilterValue() ?? "all")
   const equipmentFilter = String(table.getColumn("equipmentSearch")?.getFilterValue() ?? "all")
   const uniqueAreas = [...new Set(allRows.map((row) => row.areaName))].sort()
@@ -85,11 +82,10 @@ export function DiagnosesPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={String(table.state.globalFilter ?? "")} onChange={(event) => table.setGlobalFilter(event.target.value)} placeholder="Buscar por Código UNI, serie, equipo, responsable, área o técnico..." className="h-10 pl-9" aria-label="Buscar diagnósticos" />
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[auto_repeat(5,minmax(0,1fr))]">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[auto_repeat(4,minmax(0,1fr))]">
             <SlidersHorizontal className="hidden size-4 self-center text-muted-foreground xl:block" />
             <Select value={areaFilter} onValueChange={(value) => table.getColumn("areaName")?.setFilterValue(value === "all" ? undefined : value)}><SelectTrigger className="h-10 w-full bg-card"><SelectValue placeholder="Área" /></SelectTrigger><SelectContent><SelectItem value="all">Todas las áreas</SelectItem>{uniqueAreas.map((area) => <SelectItem key={area} value={area}>{area}</SelectItem>)}</SelectContent></Select>
             <Select value={equipmentFilter} onValueChange={(value) => table.getColumn("equipmentSearch")?.setFilterValue(value === "all" ? undefined : value)}><SelectTrigger className="h-10 w-full bg-card"><SelectValue placeholder="Tipo de equipo" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los equipos</SelectItem>{equipmentTypes.map((type) => <SelectItem key={type.value} value={type.label}>{type.label}</SelectItem>)}</SelectContent></Select>
-            <Select value={supportFilter} onValueChange={(value) => table.getColumn("supportTypeLabel")?.setFilterValue(value === "all" ? undefined : value)}><SelectTrigger className="h-10 w-full bg-card"><SelectValue placeholder="Tipo de soporte" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los soportes</SelectItem>{supportTypes.map((type) => <SelectItem key={type.value} value={type.label}>{type.label}</SelectItem>)}</SelectContent></Select>
             <Select value={technicianFilter} onValueChange={(value) => table.getColumn("technicianName")?.setFilterValue(value === "all" ? undefined : value)}><SelectTrigger className="h-10 w-full bg-card"><SelectValue placeholder="Técnico" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los técnicos</SelectItem>{uniqueTechnicians.map((technician) => <SelectItem key={technician} value={technician}>{technician}</SelectItem>)}</SelectContent></Select>
             <Input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="h-10 bg-card" aria-label="Filtrar por fecha" />
           </div>
