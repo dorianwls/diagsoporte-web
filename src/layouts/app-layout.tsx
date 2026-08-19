@@ -1,9 +1,8 @@
-import { useState } from "react"
-import { Outlet, useRouterState } from "@tanstack/react-router"
-import { Bell, Menu, Search } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router"
+import { Menu } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Sheet,
   SheetContent,
@@ -13,12 +12,24 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { getPageTitle } from "@/config/navigation"
+import { clearAuthSession } from "@/features/auth/auth-service"
 import { AppSidebar } from "@/layouts/app-sidebar"
 
 export function AppLayout() {
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
+  const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const pageTitle = getPageTitle(pathname)
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      clearAuthSession()
+      void navigate({ to: "/login", replace: true })
+    }
+
+    window.addEventListener("diagsoporte:unauthorized", handleUnauthorized)
+    return () => window.removeEventListener("diagsoporte:unauthorized", handleUnauthorized)
+  }, [navigate])
 
   return (
     <div className="app-shell min-h-svh lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)]">
@@ -50,19 +61,6 @@ export function AppLayout() {
             </p>
           </div>
 
-          <div className="relative hidden w-full max-w-xs xl:block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              aria-label="Buscar en el repositorio"
-              placeholder="Buscar en el repositorio..."
-              className="h-9 bg-card pl-9 shadow-none"
-            />
-          </div>
-
-          <Button variant="outline" size="icon" aria-label="Notificaciones" className="relative bg-card">
-            <Bell />
-            <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-primary" />
-          </Button>
         </header>
 
         <main className="app-main mx-auto w-full max-w-[96rem] p-4 sm:p-6 lg:p-8">

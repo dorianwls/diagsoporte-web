@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, Building2, Info, LoaderCircle, Save } from "lucide-react"
@@ -5,6 +6,7 @@ import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/shared/page-header"
+import { PageErrorState, PageLoadingState } from "@/components/shared/async-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,11 +23,12 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import {
   createArea,
-  DuplicateAreaNameError,
   findAreaById,
   updateArea,
 } from "@/features/areas/area-repository"
 import { areaFormSchema, type AreaFormValues } from "@/features/areas/area-schema"
+import { useApiQuery } from "@/hooks/use-api-query"
+import { ApiError, getErrorMessage } from "@/lib/api-client"
 
 interface AreaFormPageProps {
   areaId?: string
@@ -33,20 +36,27 @@ interface AreaFormPageProps {
 
 export function AreaFormPage({ areaId }: AreaFormPageProps) {
   const navigate = useNavigate()
-  const area = areaId ? findAreaById(areaId) : undefined
   const isEditing = Boolean(areaId)
+  const query = useApiQuery(
+    `area-form:${areaId ?? "new"}`,
+    (signal) => areaId ? findAreaById(areaId, signal) : Promise.resolve(null),
+  )
+  const area = query.data
   const form = useForm<AreaFormValues>({
     resolver: zodResolver(areaFormSchema),
     defaultValues: {
-      name: area?.name ?? "",
-      isActive: area?.isActive ?? true,
+      name: "",
+      isActive: true,
     },
     mode: "onTouched",
   })
 
-  if (isEditing && !area) {
-    return <AreaNotFound />
-  }
+  useEffect(() => {
+    if (area) form.reset({ name: area.name, isActive: area.isActive })
+  }, [area, form])
+
+  if (isEditing && query.isLoading) return <PageLoadingState label="Cargando el área..." />
+  if (isEditing && query.error) return <PageErrorState error={query.error} onRetry={query.reload} />
 
   async function onSubmit(values: AreaFormValues) {
     try {
@@ -60,13 +70,13 @@ export function AreaFormPage({ areaId }: AreaFormPageProps) {
 
       await navigate({ to: "/areas" })
     } catch (error) {
-      if (error instanceof DuplicateAreaNameError) {
+      if (error instanceof ApiError && error.status === 409) {
         form.setError("name", { message: error.message }, { shouldFocus: true })
         return
       }
 
       form.setError("root", {
-        message: "No fue posible guardar el área. Intente nuevamente.",
+        message: getErrorMessage(error, "No fue posible guardar el área. Intente nuevamente."),
       })
     }
   }
@@ -194,24 +204,5 @@ export function AreaFormPage({ areaId }: AreaFormPageProps) {
         </div>
       </form>
     </div>
-  )
-}
-
-function AreaNotFound() {
-  return (
-    <Card className="mx-auto max-w-xl py-10 text-center shadow-sm">
-      <CardContent>
-        <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
-          <Building2 className="size-6" />
-        </div>
-        <h1 className="mt-5 text-xl font-semibold">Área no encontrada</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          El registro solicitado no existe o ya no está disponible.
-        </p>
-        <Button asChild className="mt-6">
-          <Link to="/areas">Volver a las áreas</Link>
-        </Button>
-      </CardContent>
-    </Card>
   )
 }

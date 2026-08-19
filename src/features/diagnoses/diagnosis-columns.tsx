@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { ArrowDown, ArrowUp, ArrowUpDown, Eye, MoreHorizontal, Pencil, Printer } from "lucide-react"
+import { Eye, MoreHorizontal, Pencil, Printer } from "lucide-react"
 import {
   columnFilteringFeature,
   createFilteredRowModel,
@@ -17,6 +17,7 @@ import {
 } from "@tanstack/react-table"
 
 import { Button } from "@/components/ui/button"
+import { ServerSortButton, type ServerSorting } from "@/components/shared/server-sort-button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,16 +48,17 @@ export const diagnosisTableFeatures = tableFeatures({
   sortFns: { datetime: sortFn_datetime, text: sortFn_text },
 })
 
-export const diagnosisColumns: ColumnDef<typeof diagnosisTableFeatures, DiagnosisTableRow>[] = [
+export function createDiagnosisColumns({ sorting, onSortingChange, canEdit, canExport }: { sorting: ServerSorting; onSortingChange: (sorting: ServerSorting) => void; canEdit: boolean; canExport: boolean }): ColumnDef<typeof diagnosisTableFeatures, DiagnosisTableRow>[] {
+return [
   {
     accessorKey: "code",
-    header: ({ column }) => renderSortButton("Código", column.getIsSorted(), () => column.toggleSorting(column.getIsSorted() === "asc")),
+    header: () => <ServerSortButton label="Código" column="code" sorting={sorting} onChange={onSortingChange} />,
     cell: ({ row }) => <Link to="/diagnosticos/$diagnosisId" params={{ diagnosisId: row.original.id }} className="font-mono text-xs font-semibold text-primary underline-offset-4 hover:underline">{row.original.code}</Link>,
     sortFn: "text",
   },
   {
     accessorKey: "startedAt",
-    header: ({ column }) => renderSortButton("Fecha", column.getIsSorted(), () => column.toggleSorting(column.getIsSorted() === "asc")),
+    header: () => <ServerSortButton label="Fecha" column="startedAt" sorting={sorting} onChange={onSortingChange} />,
     cell: ({ row }) => <span className="text-muted-foreground">{formatDateTime(row.original.startedAt)}</span>,
     sortFn: "datetime",
     enableGlobalFilter: false,
@@ -106,9 +108,8 @@ export const diagnosisColumns: ColumnDef<typeof diagnosisTableFeatures, Diagnosi
           <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
             <DropdownMenuItem asChild><Link to="/diagnosticos/$diagnosisId" params={{ diagnosisId: row.original.id }}><Eye />Ver diagnóstico</Link></DropdownMenuItem>
-            <DropdownMenuItem asChild><Link to="/diagnosticos/$diagnosisId/editar" params={{ diagnosisId: row.original.id }}><Pencil />Editar</Link></DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild><Link to="/diagnosticos/$diagnosisId/imprimir" params={{ diagnosisId: row.original.id }}><Printer />Imprimir o exportar</Link></DropdownMenuItem>
+            {canEdit && <DropdownMenuItem asChild><Link to="/diagnosticos/$diagnosisId/editar" params={{ diagnosisId: row.original.id }}><Pencil />Editar</Link></DropdownMenuItem>}
+            {canExport && <><DropdownMenuSeparator /><DropdownMenuItem asChild><Link to="/diagnosticos/$diagnosisId/imprimir" params={{ diagnosisId: row.original.id }}><Printer />Imprimir o exportar</Link></DropdownMenuItem></>}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -117,7 +118,4 @@ export const diagnosisColumns: ColumnDef<typeof diagnosisTableFeatures, Diagnosi
     enableSorting: false,
   },
 ]
-
-function renderSortButton(label: string, direction: false | "asc" | "desc", onClick: () => void) {
-  return <Button variant="ghost" size="sm" className="-ml-2" onClick={onClick}>{label}{direction === "asc" ? <ArrowUp data-icon="inline-end" /> : direction === "desc" ? <ArrowDown data-icon="inline-end" /> : <ArrowUpDown className="opacity-45" data-icon="inline-end" />}</Button>
 }

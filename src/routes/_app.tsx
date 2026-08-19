@@ -1,11 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 
-import { getAuthSession } from "@/features/auth/auth-service"
+import { restoreAuthSession } from "@/features/auth/auth-service"
 import { AppLayout } from "@/layouts/app-layout"
 
 export const Route = createFileRoute("/_app")({
-  beforeLoad: () => {
-    if (!getAuthSession()) {
+  beforeLoad: async () => {
+    if (!(await restoreAuthSession())) {
       throw redirect({ to: "/login" })
     }
   },

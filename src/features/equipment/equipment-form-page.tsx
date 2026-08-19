@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, Info, Laptop, LoaderCircle, MapPin, Save, UserRound } from "lucide-react"
@@ -5,6 +6,7 @@ import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/shared/page-header"
+import { PageErrorState, PageLoadingState } from "@/components/shared/async-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,16 +23,16 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { equipmentTypes } from "@/config/catalogs"
-import { listAreas } from "@/features/areas/area-repository"
+import { listAllAreas } from "@/features/areas/area-repository"
 import {
   createEquipment,
-  DuplicateSerialNumberError,
-  DuplicateUniCodeError,
   findEquipmentById,
   updateEquipment,
 } from "@/features/equipment/equipment-repository"
 import { equipmentFormSchema, type EquipmentFormValues } from "@/features/equipment/equipment-schema"
-import { listEmployees } from "@/features/employees/employee-repository"
+import { listAllEmployees } from "@/features/employees/employee-repository"
+import { useApiQuery } from "@/hooks/use-api-query"
+import { ApiError, getErrorMessage } from "@/lib/api-client"
 
 interface EquipmentFormPageProps {
   equipmentId?: string
@@ -38,22 +40,34 @@ interface EquipmentFormPageProps {
 
 export function EquipmentFormPage({ equipmentId }: EquipmentFormPageProps) {
   const navigate = useNavigate()
-  const equipment = equipmentId ? findEquipmentById(equipmentId) : undefined
   const isEditing = Boolean(equipmentId)
-  const employees = listEmployees().filter((employee) => employee.isActive || employee.id === equipment?.currentResponsibleEmployeeId)
-  const areas = listAreas().filter((area) => area.isActive || area.id === equipment?.currentAreaId)
+  const query = useApiQuery(`equipment-form:${equipmentId ?? "new"}`, async (signal) => {
+    const [equipment, allEmployees, allAreas] = await Promise.all([
+      equipmentId ? findEquipmentById(equipmentId, signal) : Promise.resolve(null),
+      listAllEmployees(undefined, signal),
+      listAllAreas(undefined, signal),
+    ])
+    return {
+      equipment,
+      employees: allEmployees.filter((employee) => employee.isActive || employee.id === equipment?.currentResponsibleEmployeeId),
+      areas: allAreas.filter((area) => area.isActive || area.id === equipment?.currentAreaId),
+    }
+  })
+  const equipment = query.data?.equipment
+  const employees = query.data?.employees ?? []
+  const areas = query.data?.areas ?? []
   const form = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentFormSchema),
     defaultValues: {
-      type: equipment?.type ?? "LAPTOP",
-      brand: equipment?.brand ?? "",
-      uniCode: equipment?.uniCode ?? "",
-      color: equipment?.color ?? "",
-      serialNumber: equipment?.serialNumber ?? "",
-      model: equipment?.model ?? "",
-      currentResponsibleEmployeeId: equipment?.currentResponsibleEmployeeId ?? "",
-      currentAreaId: equipment?.currentAreaId ?? "",
-      isActive: equipment?.isActive ?? true,
+      type: "LAPTOP",
+      brand: "",
+      uniCode: "",
+      color: "",
+      serialNumber: "",
+      model: "",
+      currentResponsibleEmployeeId: "",
+      currentAreaId: "",
+      isActive: true,
     },
     mode: "onTouched",
   })
@@ -62,7 +76,24 @@ export function EquipmentFormPage({ equipmentId }: EquipmentFormPageProps) {
   const selectedResponsible = employees.find((employee) => employee.id === selectedResponsibleId)
   const selectedArea = areas.find((area) => area.id === selectedAreaId)
 
-  if (isEditing && !equipment) return <EquipmentNotFound />
+  useEffect(() => {
+    if (equipment) {
+      form.reset({
+        type: equipment.type,
+        brand: equipment.brand,
+        uniCode: equipment.uniCode,
+        color: equipment.color ?? "",
+        serialNumber: equipment.serialNumber,
+        model: equipment.model,
+        currentResponsibleEmployeeId: equipment.currentResponsibleEmployeeId ?? "",
+        currentAreaId: equipment.currentAreaId ?? "",
+        isActive: equipment.isActive,
+      })
+    }
+  }, [equipment, form])
+
+  if (query.isLoading) return <PageLoadingState label="Cargando datos del equipo..." />
+  if (query.error) return <PageErrorState error={query.error} onRetry={query.reload} />
 
   async function onSubmit(values: EquipmentFormValues) {
     try {
@@ -75,15 +106,14 @@ export function EquipmentFormPage({ equipmentId }: EquipmentFormPageProps) {
       }
       await navigate({ to: "/equipos" })
     } catch (error) {
-      if (error instanceof DuplicateUniCodeError) {
-        form.setError("uniCode", { message: error.message }, { shouldFocus: true })
+      if (error instanceof ApiError && error.status === 409) {
+        const field = error.message.toLocaleLowerCase("es").includes("serie")
+          ? "serialNumber"
+          : "uniCode"
+        form.setError(field, { message: error.message }, { shouldFocus: true })
         return
       }
-      if (error instanceof DuplicateSerialNumberError) {
-        form.setError("serialNumber", { message: error.message }, { shouldFocus: true })
-        return
-      }
-      form.setError("root", { message: "No fue posible guardar el equipo. Intente nuevamente." })
+      form.setError("root", { message: getErrorMessage(error, "No fue posible guardar el equipo. Intente nuevamente.") })
     }
   }
 
@@ -253,12 +283,4 @@ function TextField({ form, name, label, placeholder, description, optional }: Te
 
 function SummaryItem({ icon: Icon, label, value }: { icon: typeof UserRound; label: string; value: string }) {
   return <div className="flex gap-3"><div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/8 text-primary"><Icon className="size-4" /></div><div><p className="text-xs text-muted-foreground">{label}</p><p className="mt-0.5 font-medium">{value}</p></div></div>
-}
-
-function EquipmentNotFound() {
-  return (
-    <Card className="mx-auto max-w-xl py-10 text-center shadow-sm">
-      <CardContent><Laptop className="mx-auto size-8 text-muted-foreground" /><h1 className="mt-5 text-xl font-semibold">Equipo no encontrado</h1><p className="mt-2 text-sm text-muted-foreground">El registro solicitado no existe.</p><Button asChild className="mt-6"><Link to="/equipos">Volver al inventario</Link></Button></CardContent>
-    </Card>
-  )
 }

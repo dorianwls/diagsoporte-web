@@ -10,39 +10,39 @@ import {
 } from "lucide-react"
 
 import { PageHeader } from "@/components/shared/page-header"
+import { PageErrorState, PageLoadingState } from "@/components/shared/async-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { equipmentTypes } from "@/config/catalogs"
-import { listAreas } from "@/features/areas/area-repository"
 import { getAuthSession } from "@/features/auth/auth-service"
-import { listDiagnoses } from "@/features/diagnoses/diagnosis-repository"
-import { listEquipment } from "@/features/equipment/equipment-repository"
-import { listEmployees } from "@/features/employees/employee-repository"
+import { getDashboardSummary, getRecentDiagnoses } from "@/features/dashboard/dashboard-service"
+import { useApiQuery } from "@/hooks/use-api-query"
 import { formatDateTime } from "@/lib/formatters"
 
 export function DashboardPage() {
   const firstName = getAuthSession()?.fullName.split(" ")[0] ?? "Usuario"
-  const diagnoses = listDiagnoses()
-  const equipment = listEquipment()
-  const employees = listEmployees()
-  const areas = listAreas()
-  const currentMonth = toMonthKey(new Date())
-  const diagnosesThisMonth = diagnoses.filter((diagnosis) => toMonthKey(new Date(diagnosis.startedAt)) === currentMonth)
+  const query = useApiQuery("dashboard", async (signal) => {
+    const [summary, recentDiagnoses] = await Promise.all([
+      getDashboardSummary(signal),
+      getRecentDiagnoses(5, signal),
+    ])
+    return { summary, recentDiagnoses }
+  })
+
+  if (query.isLoading) return <PageLoadingState label="Cargando resumen institucional..." />
+  if (query.error) return <PageErrorState error={query.error} onRetry={query.reload} />
+  if (!query.data) return null
+
+  const { summary, recentDiagnoses } = query.data
   const metrics = [
-    { label: "Diagnósticos registrados", value: diagnoses.length, note: "Repositorio histórico", icon: ClipboardCheck, color: "bg-primary/8 text-primary" },
-    { label: "Equipos registrados", value: equipment.length, note: "Inventario institucional", icon: Laptop, color: "bg-cyan-50 text-cyan-700" },
-    { label: "Empleados", value: employees.length, note: `En ${areas.length} áreas`, icon: Users, color: "bg-amber-50 text-amber-700" },
-    { label: "Realizados este mes", value: diagnosesThisMonth.length, note: "Actividad documentada", icon: FileClock, color: "bg-violet-50 text-violet-700" },
+    { label: "Diagnósticos registrados", value: summary.diagnosesRegistered, note: "Repositorio histórico", icon: ClipboardCheck, color: "bg-primary/8 text-primary" },
+    { label: "Equipos registrados", value: summary.equipmentRegistered, note: "Inventario institucional", icon: Laptop, color: "bg-cyan-50 text-cyan-700" },
+    { label: "Empleados", value: summary.employeesRegistered, note: `En ${summary.areasRegistered} áreas`, icon: Users, color: "bg-amber-50 text-amber-700" },
+    { label: "Realizados este mes", value: summary.diagnosesThisMonth, note: "Actividad documentada", icon: FileClock, color: "bg-violet-50 text-violet-700" },
   ]
-  const recentDiagnoses = [...diagnoses].sort((left, right) => right.startedAt.localeCompare(left.startedAt)).slice(0, 3)
-  const distributionCounts = diagnosesThisMonth.reduce((counts, diagnosis) => {
-    counts.set(diagnosis.snapshot.equipment.type, (counts.get(diagnosis.snapshot.equipment.type) ?? 0) + 1)
-    return counts
-  }, new Map<string, number>())
-  const equipmentDistribution = [...distributionCounts.entries()]
-    .map(([type, count]) => ({ label: equipmentTypes.find((item) => item.value === type)?.label ?? type, value: Math.round((count / Math.max(diagnosesThisMonth.length, 1)) * 100) }))
-    .sort((left, right) => right.value - left.value)
+  const equipmentDistribution = summary.equipmentTypeDistribution
+    .map((item) => ({ label: equipmentTypes.find((type) => type.value === item.type)?.label ?? item.type, value: item.percentage }))
     .slice(0, 4)
 
   return (
@@ -154,8 +154,4 @@ export function DashboardPage() {
       </section>
     </div>
   )
-}
-
-function toMonthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
 }

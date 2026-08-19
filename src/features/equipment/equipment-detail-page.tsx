@@ -2,15 +2,17 @@ import { Link } from "@tanstack/react-router"
 import { ArrowLeft, Building2, ClipboardPlus, Eye, History, Laptop, Pencil, Printer, UserRound } from "lucide-react"
 
 import { PageHeader } from "@/components/shared/page-header"
+import { PageErrorState, PageLoadingState } from "@/components/shared/async-state"
+import { DataTablePagination } from "@/components/shared/data-table-pagination"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { equipmentTypes } from "@/config/catalogs"
-import { findAreaById } from "@/features/areas/area-repository"
-import { listDiagnosesByEquipmentId } from "@/features/diagnoses/diagnosis-repository"
+import { hasPermission } from "@/features/auth/auth-service"
+import { listEquipmentHistory } from "@/features/diagnoses/diagnosis-repository"
 import { findEquipmentById } from "@/features/equipment/equipment-repository"
-import { findEmployeeById } from "@/features/employees/employee-repository"
+import { useApiQuery } from "@/hooks/use-api-query"
 import { formatLongDate, formatShortDate } from "@/lib/formatters"
 
 interface EquipmentDetailPageProps {
@@ -18,13 +20,24 @@ interface EquipmentDetailPageProps {
 }
 
 export function EquipmentDetailPage({ equipmentId }: EquipmentDetailPageProps) {
-  const equipment = findEquipmentById(equipmentId)
+  const [pageIndex, setPageIndex] = useState(0)
+  const pageSize = 10
+  const query = useApiQuery(`equipment-detail:${equipmentId}:${pageIndex}`, async (signal) => {
+    const [equipment, history] = await Promise.all([
+      findEquipmentById(equipmentId, signal),
+      listEquipmentHistory(equipmentId, pageIndex + 1, pageSize, signal),
+    ])
+    return { equipment, history }
+  })
+  const equipment = query.data?.equipment
+
+  if (query.isLoading) return <PageLoadingState label="Cargando historial del equipo..." />
+  if (query.error) return <PageErrorState error={query.error} onRetry={query.reload} />
   if (!equipment) return <EquipmentNotFound />
 
   const typeLabel = equipmentTypes.find((type) => type.value === equipment.type)?.label ?? equipment.type
-  const responsible = equipment.currentResponsibleEmployeeId ? findEmployeeById(equipment.currentResponsibleEmployeeId) : undefined
-  const area = equipment.currentAreaId ? findAreaById(equipment.currentAreaId) : undefined
-  const diagnoses = listDiagnosesByEquipmentId(equipmentId)
+  const history = query.data!.history
+  const diagnoses = history.items
 
   return (
     <div className="space-y-7">
@@ -35,7 +48,7 @@ export function EquipmentDetailPage({ equipmentId }: EquipmentDetailPageProps) {
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline"><Link to="/equipos"><ArrowLeft data-icon="inline-start" />Volver</Link></Button>
-            <Button asChild><Link to="/equipos/$equipmentId/editar" params={{ equipmentId }}><Pencil data-icon="inline-start" />Editar</Link></Button>
+            {hasPermission("equipment:update") && <Button asChild><Link to="/equipos/$equipmentId/editar" params={{ equipmentId }}><Pencil data-icon="inline-start" />Editar</Link></Button>}
           </div>
         }
       />
@@ -65,8 +78,8 @@ export function EquipmentDetailPage({ equipmentId }: EquipmentDetailPageProps) {
         <Card className="gap-4 bg-primary/[0.035] shadow-none">
           <CardHeader><CardTitle className="text-sm">Asignación actual</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <Assignment icon={UserRound} label="Responsable" value={responsible?.fullName ?? "Sin asignar"} />
-            <Assignment icon={Building2} label="Área" value={area?.name ?? "Sin asignar"} />
+            <Assignment icon={UserRound} label="Responsable" value={equipment.currentResponsibleName ?? "Sin asignar"} />
+            <Assignment icon={Building2} label="Área" value={equipment.currentAreaName ?? "Sin asignar"} />
           </CardContent>
         </Card>
       </div>
@@ -78,7 +91,7 @@ export function EquipmentDetailPage({ equipmentId }: EquipmentDetailPageProps) {
               <CardTitle className="flex items-center gap-2"><History className="size-4.5 text-primary" />Historial técnico</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">Diagnósticos técnicos documentados para este equipo.</p>
             </div>
-            <Button asChild><Link to="/diagnosticos/nuevo"><ClipboardPlus data-icon="inline-start" />Nuevo diagnóstico</Link></Button>
+            {hasPermission("diagnoses:create") && <Button asChild><Link to="/diagnosticos/nuevo"><ClipboardPlus data-icon="inline-start" />Nuevo diagnóstico</Link></Button>}
           </div>
         </CardHeader>
         <CardContent className={diagnoses.length ? "p-0" : "flex min-h-64 flex-col items-center justify-center p-8 text-center"}>
@@ -98,6 +111,7 @@ export function EquipmentDetailPage({ equipmentId }: EquipmentDetailPageProps) {
             <><div className="grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground"><History className="size-6" /></div><h2 className="mt-4 font-semibold">Todavía no hay diagnósticos relacionados</h2><p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">Cuando registremos intervenciones técnicas para este Código UNI, aparecerán aquí ordenadas cronológicamente.</p></>
           )}
         </CardContent>
+        {history.totalPages > 1 && <DataTablePagination entityLabel="diagnósticos" firstVisibleRow={pageIndex * pageSize + 1} lastVisibleRow={Math.min((pageIndex + 1) * pageSize, history.totalItems)} rowCount={history.totalItems} pageIndex={pageIndex} pageSize={pageSize} pageCount={history.totalPages} pageSizeOptions={[10]} canPreviousPage={pageIndex > 0} canNextPage={pageIndex + 1 < history.totalPages} onPageSizeChange={() => undefined} onPreviousPage={() => setPageIndex((value) => Math.max(0, value - 1))} onNextPage={() => setPageIndex((value) => value + 1)} />}
       </Card>
     </div>
   )
@@ -118,3 +132,4 @@ function EquipmentNotFound() {
     </Card>
   )
 }
+import { useState } from "react"

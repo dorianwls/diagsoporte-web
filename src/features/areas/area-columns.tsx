@@ -1,8 +1,5 @@
 import { Link } from "@tanstack/react-router"
 import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   CircleOff,
   MoreHorizontal,
   Pencil,
@@ -26,6 +23,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ServerSortButton, type ServerSorting } from "@/components/shared/server-sort-button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,30 +55,26 @@ export const areaTableFeatures = tableFeatures({
 
 interface AreaColumnsOptions {
   onStatusRequest: (area: Area) => void
+  sorting: ServerSorting
+  onSortingChange: (sorting: ServerSorting) => void
+  canManage: boolean
 }
 
 export function createAreaColumns({
   onStatusRequest,
+  sorting,
+  onSortingChange,
+  canManage,
 }: AreaColumnsOptions): ColumnDef<typeof areaTableFeatures, Area>[] {
   return [
     {
       accessorKey: "name",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-2"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Área
-          {renderSortIcon(column.getIsSorted())}
-        </Button>
-      ),
+      header: () => <ServerSortButton label="Área" column="name" sorting={sorting} onChange={onSortingChange} />,
       cell: ({ row }) => (
         <div>
           <p className="font-medium text-foreground">{row.original.name}</p>
-          <p className="mt-0.5 font-mono text-[0.68rem] text-muted-foreground">
-            {row.original.id.startsWith("area-") ? row.original.id.toUpperCase() : "ÁREA REGISTRADA"}
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {row.original.employeeCount} empleados · {row.original.equipmentCount} equipos
           </p>
         </div>
       ),
@@ -107,17 +101,7 @@ export function createAreaColumns({
     },
     {
       accessorKey: "updatedAt",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-2"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Última actualización
-          {renderSortIcon(column.getIsSorted())}
-        </Button>
-      ),
+      header: () => <ServerSortButton label="Última actualización" column="updatedAt" sorting={sorting} onChange={onSortingChange} />,
       cell: ({ row }) => (
         <span className="text-muted-foreground">{formatShortDate(row.original.updatedAt)}</span>
       ),
@@ -129,6 +113,8 @@ export function createAreaColumns({
       header: () => <span className="sr-only">Acciones</span>,
       cell: ({ row }) => {
         const area = row.original
+
+        if (!canManage) return null
 
         return (
           <div className="text-right">
@@ -163,10 +149,4 @@ export function createAreaColumns({
       enableSorting: false,
     },
   ]
-}
-
-function renderSortIcon(direction: false | "asc" | "desc") {
-  if (direction === "asc") return <ArrowUp data-icon="inline-end" />
-  if (direction === "desc") return <ArrowDown data-icon="inline-end" />
-  return <ArrowUpDown className="opacity-45" data-icon="inline-end" />
 }

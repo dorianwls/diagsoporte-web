@@ -2,11 +2,14 @@ import { Link } from "@tanstack/react-router"
 import { CalendarClock, FileOutput, FileText, Laptop, Pencil, Printer, UserRound, Wrench } from "lucide-react"
 
 import { PageHeader } from "@/components/shared/page-header"
+import { PageErrorState, PageLoadingState } from "@/components/shared/async-state"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { equipmentTypes } from "@/config/catalogs"
+import { hasPermission } from "@/features/auth/auth-service"
 import { findDiagnosisById } from "@/features/diagnoses/diagnosis-repository"
+import { useApiQuery } from "@/hooks/use-api-query"
 import { formatDateTime } from "@/lib/formatters"
 
 interface DiagnosisDetailPageProps {
@@ -14,7 +17,11 @@ interface DiagnosisDetailPageProps {
 }
 
 export function DiagnosisDetailPage({ diagnosisId }: DiagnosisDetailPageProps) {
-  const diagnosis = findDiagnosisById(diagnosisId)
+  const query = useApiQuery(`diagnosis:${diagnosisId}`, (signal) => findDiagnosisById(diagnosisId, signal))
+  const diagnosis = query.data
+
+  if (query.isLoading) return <PageLoadingState label="Cargando diagnóstico técnico..." />
+  if (query.error) return <PageErrorState error={query.error} onRetry={query.reload} />
   if (!diagnosis) return <DiagnosisNotFound />
 
   const { snapshot } = diagnosis
@@ -28,8 +35,8 @@ export function DiagnosisDetailPage({ diagnosisId }: DiagnosisDetailPageProps) {
         description={`Intervención documentada el ${formatDateTime(diagnosis.startedAt)}.`}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline"><Link to="/diagnosticos/$diagnosisId/editar" params={{ diagnosisId }}><Pencil data-icon="inline-start" />Editar</Link></Button>
-            <Button asChild><Link to="/diagnosticos/$diagnosisId/imprimir" params={{ diagnosisId }}><FileOutput data-icon="inline-start" />Imprimir o exportar</Link></Button>
+            {hasPermission("diagnoses:update") && <Button asChild variant="outline"><Link to="/diagnosticos/$diagnosisId/editar" params={{ diagnosisId }}><Pencil data-icon="inline-start" />Editar</Link></Button>}
+            {hasPermission("diagnoses:export") && <Button asChild><Link to="/diagnosticos/$diagnosisId/imprimir" params={{ diagnosisId }}><FileOutput data-icon="inline-start" />Imprimir o exportar</Link></Button>}
           </div>
         }
       />
@@ -79,10 +86,10 @@ export function DiagnosisDetailPage({ diagnosisId }: DiagnosisDetailPageProps) {
               <Info label="Última actualización" value={formatDateTime(diagnosis.updatedAt)} />
             </CardContent>
           </Card>
-          <Card className="gap-3 bg-primary/[0.035] shadow-none">
+          {hasPermission("diagnoses:export") && <Card className="gap-3 bg-primary/[0.035] shadow-none">
             <CardHeader><CardTitle className="flex items-center gap-2 text-sm"><Printer className="size-4 text-primary" />Documento institucional</CardTitle></CardHeader>
             <CardContent><p className="text-sm leading-6 text-muted-foreground">La vista documental permite imprimir o descargar este reporte en Word y PDF.</p><Button asChild variant="outline" className="mt-4 w-full"><Link to="/diagnosticos/$diagnosisId/imprimir" params={{ diagnosisId }}><FileText />Abrir documento</Link></Button></CardContent>
-          </Card>
+          </Card>}
         </aside>
       </div>
     </div>

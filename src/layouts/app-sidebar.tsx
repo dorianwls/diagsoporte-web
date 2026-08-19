@@ -17,6 +17,12 @@ interface AppSidebarProps {
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const navigate = useNavigate()
   const session = getAuthSession()
+  const allowedGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => session?.permissions.includes(item.permission)),
+    }))
+    .filter((group) => group.items.length > 0)
   const initials = session?.fullName
     .split(" ")
     .slice(0, 2)
@@ -25,10 +31,14 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
     .toUpperCase()
 
   async function handleSignOut() {
-    signOut()
-    onNavigate?.()
-    toast.success("Sesión cerrada correctamente")
-    await navigate({ to: "/login" })
+    try {
+      await signOut()
+      onNavigate?.()
+      toast.success("Sesión cerrada correctamente")
+      await navigate({ to: "/login" })
+    } catch {
+      toast.error("No fue posible cerrar la sesión en el servidor")
+    }
   }
 
   return (
@@ -40,7 +50,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
       <Separator className="bg-sidebar-border" />
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Navegación principal">
-        {navigationGroups.map((group, groupIndex) => (
+        {allowedGroups.map((group, groupIndex) => (
           <div key={group.label ?? `main-${groupIndex}`}>
             {group.label && (
               <p className="mb-2 px-3 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45">

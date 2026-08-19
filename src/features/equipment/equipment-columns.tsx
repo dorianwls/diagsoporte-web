@@ -1,8 +1,5 @@
 import { Link } from "@tanstack/react-router"
 import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   CircleOff,
   History,
   MoreHorizontal,
@@ -27,6 +24,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ServerSortButton, type ServerSorting } from "@/components/shared/server-sort-button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,9 +37,6 @@ import type { Equipment } from "@/types/domain"
 
 export interface EquipmentTableRow extends Equipment {
   typeLabel: string
-  responsibleName: string
-  areaName: string
-  diagnosisCount: number
 }
 
 export const equipmentTableFeatures = tableFeatures({
@@ -58,18 +53,21 @@ export const equipmentTableFeatures = tableFeatures({
 
 interface EquipmentColumnsOptions {
   onStatusRequest: (equipment: Equipment) => void
+  sorting: ServerSorting
+  onSortingChange: (sorting: ServerSorting) => void
+  canManage: boolean
 }
 
 export function createEquipmentColumns({
   onStatusRequest,
+  sorting,
+  onSortingChange,
+  canManage,
 }: EquipmentColumnsOptions): ColumnDef<typeof equipmentTableFeatures, EquipmentTableRow>[] {
   return [
     {
       accessorKey: "uniCode",
-      header: ({ column }) =>
-        renderSortButton("Código UNI", column.getIsSorted(), () =>
-          column.toggleSorting(column.getIsSorted() === "asc"),
-        ),
+      header: () => <ServerSortButton label="Código UNI" column="uniCode" sorting={sorting} onChange={onSortingChange} />,
       cell: ({ row }) => (
         <Link
           to="/equipos/$equipmentId"
@@ -83,10 +81,7 @@ export function createEquipmentColumns({
     },
     {
       accessorKey: "typeLabel",
-      header: ({ column }) =>
-        renderSortButton("Equipo", column.getIsSorted(), () =>
-          column.toggleSorting(column.getIsSorted() === "asc"),
-        ),
+      header: () => <ServerSortButton label="Equipo" column="brand" sorting={sorting} onChange={onSortingChange} />,
       cell: ({ row }) => (
         <div>
           <p className="font-medium text-foreground">{row.original.brand} {row.original.model}</p>
@@ -103,13 +98,13 @@ export function createEquipmentColumns({
       sortFn: "text",
     },
     {
-      accessorKey: "responsibleName",
+      accessorKey: "currentResponsibleName",
       header: "Responsable",
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.responsibleName}</span>,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.currentResponsibleName ?? "Sin asignar"}</span>,
       sortFn: "text",
     },
     {
-      accessorKey: "areaName",
+      accessorKey: "currentAreaName",
       header: "Área",
       filterFn: "equals",
       sortFn: "text",
@@ -152,6 +147,8 @@ export function createEquipmentColumns({
       header: () => <span className="sr-only">Acciones</span>,
       cell: ({ row }) => {
         const equipment = row.original
+        if (!canManage) return null
+
         return (
           <div className="text-right">
             <DropdownMenu>
@@ -182,13 +179,4 @@ export function createEquipmentColumns({
       enableSorting: false,
     },
   ]
-}
-
-function renderSortButton(label: string, direction: false | "asc" | "desc", onClick: () => void) {
-  return (
-    <Button variant="ghost" size="sm" className="-ml-2" onClick={onClick}>
-      {label}
-      {direction === "asc" ? <ArrowUp data-icon="inline-end" /> : direction === "desc" ? <ArrowDown data-icon="inline-end" /> : <ArrowUpDown className="opacity-45" data-icon="inline-end" />}
-    </Button>
-  )
 }

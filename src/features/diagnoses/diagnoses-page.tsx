@@ -1,108 +1,124 @@
 import { useMemo, useState } from "react"
 import { Link } from "@tanstack/react-router"
-import { ClipboardList, Plus, Search, SlidersHorizontal } from "lucide-react"
+import { ClipboardList, Plus, Search } from "lucide-react"
 import { useTable } from "@tanstack/react-table"
 
+import { PageErrorState } from "@/components/shared/async-state"
 import { DataTable } from "@/components/shared/data-table"
 import { DataTablePagination } from "@/components/shared/data-table-pagination"
 import { PageHeader } from "@/components/shared/page-header"
+import type { ServerSorting } from "@/components/shared/server-sort-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { equipmentTypes } from "@/config/catalogs"
-import { diagnosisColumns, diagnosisTableFeatures, type DiagnosisTableRow } from "@/features/diagnoses/diagnosis-columns"
+import { listAllAreas } from "@/features/areas/area-repository"
+import { hasPermission } from "@/features/auth/auth-service"
+import { createDiagnosisColumns, diagnosisTableFeatures, type DiagnosisTableRow } from "@/features/diagnoses/diagnosis-columns"
 import { listDiagnoses } from "@/features/diagnoses/diagnosis-repository"
+import { listTechnicians } from "@/features/users/user-service"
+import { useApiQuery } from "@/hooks/use-api-query"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
 
 export function DiagnosesPage() {
-  const diagnoses = useMemo(() => listDiagnoses(), [])
-  const [dateFilter, setDateFilter] = useState("")
-  const typeLabels = useMemo(() => new Map(equipmentTypes.map((type) => [type.value, type.label])), [])
-  const allRows = useMemo<DiagnosisTableRow[]>(
-    () => diagnoses.map((diagnosis) => ({
-      ...diagnosis,
-      equipmentSearch: `${typeLabels.get(diagnosis.snapshot.equipment.type) ?? diagnosis.snapshot.equipment.type} ${diagnosis.snapshot.equipment.brand} ${diagnosis.snapshot.equipment.model} ${diagnosis.snapshot.equipment.uniCode} ${diagnosis.snapshot.equipment.serialNumber}`,
-      responsibleName: diagnosis.snapshot.responsible.fullName,
-      areaName: diagnosis.snapshot.area.name,
-      technicianName: diagnosis.snapshot.assignedTechnician.fullName,
-    })),
-    [diagnoses, typeLabels],
-  )
-  const rows = useMemo(
-    () => dateFilter ? allRows.filter((row) => toLocalDateKey(row.startedAt) === dateFilter) : allRows,
-    [allRows, dateFilter],
+  const [search, setSearch] = useState("")
+  const [areaId, setAreaId] = useState("all")
+  const [equipmentType, setEquipmentType] = useState("all")
+  const [technicianId, setTechnicianId] = useState("all")
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSize, setPageSize] = useState(10)
+  const [sorting, setSorting] = useState<ServerSorting>({ id: "startedAt", direction: "desc" })
+  const debouncedSearch = useDebouncedValue(search)
+  const state = { debouncedSearch, areaId, equipmentType, technicianId, pageIndex, pageSize, sorting }
+  const query = useApiQuery(`diagnoses:${JSON.stringify(state)}`, async (signal) => {
+    const [result, areas, technicians] = await Promise.all([
+      listDiagnoses({
+        search: debouncedSearch,
+        areaId: areaId === "all" ? undefined : areaId,
+        equipmentType: equipmentType === "all" ? undefined : equipmentType,
+        technicianId: technicianId === "all" ? undefined : technicianId,
+        sortBy: sorting.id as "startedAt" | "code" | "area" | "technician",
+        sortDirection: sorting.direction,
+        page: pageIndex + 1,
+        pageSize,
+      }, signal),
+      listAllAreas(true, signal),
+      listTechnicians(signal),
+    ])
+    return { result, areas, technicians }
+  })
+  const result = query.data?.result
+  const rows: DiagnosisTableRow[] = (result?.items ?? []).map((diagnosis) => ({
+    ...diagnosis,
+    equipmentSearch: `${diagnosis.snapshot.equipment.brand} ${diagnosis.snapshot.equipment.model} ${diagnosis.snapshot.equipment.uniCode} ${diagnosis.snapshot.equipment.serialNumber}`,
+    responsibleName: diagnosis.snapshot.responsible.fullName,
+    areaName: diagnosis.snapshot.area.name,
+    technicianName: diagnosis.snapshot.assignedTechnician.fullName,
+  }))
+  const columns = useMemo(
+    () => createDiagnosisColumns({
+      sorting,
+      onSortingChange: (value) => { setSorting(value); setPageIndex(0) },
+      canEdit: hasPermission("diagnoses:update"),
+      canExport: hasPermission("diagnoses:export"),
+    }),
+    [sorting],
   )
   const table = useTable({
     features: diagnosisTableFeatures,
-    columns: diagnosisColumns,
+    columns,
     data: rows,
-    globalFilterFn: "includesString",
-    initialState: {
-      pagination: { pageIndex: 0, pageSize: 10 },
-      sorting: [{ id: "startedAt", desc: true }],
-    },
+    manualPagination: true,
+    rowCount: result?.totalItems ?? 0,
   })
 
-  const filteredRowCount = table.getFilteredRowModel().rows.length
-  const { pageIndex, pageSize } = table.state.pagination
-  const firstVisibleRow = filteredRowCount === 0 ? 0 : pageIndex * pageSize + 1
-  const lastVisibleRow = Math.min((pageIndex + 1) * pageSize, filteredRowCount)
-  const areaFilter = String(table.getColumn("areaName")?.getFilterValue() ?? "all")
-  const technicianFilter = String(table.getColumn("technicianName")?.getFilterValue() ?? "all")
-  const equipmentFilter = String(table.getColumn("equipmentSearch")?.getFilterValue() ?? "all")
-  const uniqueAreas = [...new Set(allRows.map((row) => row.areaName))].sort()
-  const uniqueTechnicians = [...new Set(allRows.map((row) => row.technicianName))].sort()
-  const currentMonth = toLocalDateKey(new Date().toISOString()).slice(0, 7)
-  const diagnosesThisMonth = diagnoses.filter((diagnosis) => toLocalDateKey(diagnosis.startedAt).startsWith(currentMonth)).length
-
-  function resetFilters() {
-    table.resetGlobalFilter(true)
-    table.resetColumnFilters(true)
-    setDateFilter("")
+  function clearFilters() {
+    setSearch("")
+    setAreaId("all")
+    setEquipmentType("all")
+    setTechnicianId("all")
+    setPageIndex(0)
   }
+
+  const totalItems = result?.totalItems ?? 0
 
   return (
     <div className="space-y-7">
       <PageHeader
         eyebrow="Repositorio histórico"
         title="Diagnósticos técnicos"
-        description="Busca, filtra y consulta las intervenciones documentadas sobre los equipos de la universidad."
-        actions={<Button asChild size="lg"><Link to="/diagnosticos/nuevo"><Plus data-icon="inline-start" />Nuevo diagnóstico</Link></Button>}
+        description="Busca y consulta las intervenciones técnicas documentadas para los equipos de la universidad."
+        actions={hasPermission("diagnoses:create") ? <Button asChild size="lg"><Link to="/diagnosticos/nuevo"><Plus data-icon="inline-start" />Nuevo diagnóstico</Link></Button> : undefined}
       />
+      <Badge variant="outline" className="h-7 bg-card px-3">{totalItems} diagnósticos encontrados</Badge>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className="h-7 bg-card px-3">{diagnoses.length} diagnósticos registrados</Badge>
-        <Badge variant="outline" className="h-7 bg-card px-3 text-primary">{diagnosesThisMonth} realizados este mes</Badge>
-      </div>
-
-      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-        <div className="space-y-3 border-b p-4">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={String(table.state.globalFilter ?? "")} onChange={(event) => table.setGlobalFilter(event.target.value)} placeholder="Buscar por Código UNI, serie, equipo, responsable, área o técnico..." className="h-10 pl-9" aria-label="Buscar diagnósticos" />
+      {query.error ? <PageErrorState error={query.error} onRetry={query.reload} /> : (
+        <Card className="gap-0 overflow-hidden py-0 shadow-sm">
+          <div className="grid gap-3 border-b p-4 xl:grid-cols-[minmax(20rem,1fr)_14rem_14rem_14rem]">
+            <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => { setSearch(event.target.value); setPageIndex(0) }} placeholder="Buscar por código UNI, serie, equipo o responsable..." className="h-10 pl-9" /></div>
+            <Select value={areaId} onValueChange={(value) => { setAreaId(value); setPageIndex(0) }}><SelectTrigger className="h-10 bg-card"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas las áreas</SelectItem>{query.data?.areas.map((area) => <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>)}</SelectContent></Select>
+            <Select value={equipmentType} onValueChange={(value) => { setEquipmentType(value); setPageIndex(0) }}><SelectTrigger className="h-10 bg-card"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos los equipos</SelectItem>{equipmentTypes.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent></Select>
+            <Select value={technicianId} onValueChange={(value) => { setTechnicianId(value); setPageIndex(0) }}><SelectTrigger className="h-10 bg-card"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos los técnicos</SelectItem>{query.data?.technicians.map((technician) => <SelectItem key={technician.id} value={technician.id}>{technician.fullName}</SelectItem>)}</SelectContent></Select>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[auto_repeat(4,minmax(0,1fr))]">
-            <SlidersHorizontal className="hidden size-4 self-center text-muted-foreground xl:block" />
-            <Select value={areaFilter} onValueChange={(value) => table.getColumn("areaName")?.setFilterValue(value === "all" ? undefined : value)}><SelectTrigger className="h-10 w-full bg-card"><SelectValue placeholder="Área" /></SelectTrigger><SelectContent><SelectItem value="all">Todas las áreas</SelectItem>{uniqueAreas.map((area) => <SelectItem key={area} value={area}>{area}</SelectItem>)}</SelectContent></Select>
-            <Select value={equipmentFilter} onValueChange={(value) => table.getColumn("equipmentSearch")?.setFilterValue(value === "all" ? undefined : value)}><SelectTrigger className="h-10 w-full bg-card"><SelectValue placeholder="Tipo de equipo" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los equipos</SelectItem>{equipmentTypes.map((type) => <SelectItem key={type.value} value={type.label}>{type.label}</SelectItem>)}</SelectContent></Select>
-            <Select value={technicianFilter} onValueChange={(value) => table.getColumn("technicianName")?.setFilterValue(value === "all" ? undefined : value)}><SelectTrigger className="h-10 w-full bg-card"><SelectValue placeholder="Técnico" /></SelectTrigger><SelectContent><SelectItem value="all">Todos los técnicos</SelectItem>{uniqueTechnicians.map((technician) => <SelectItem key={technician} value={technician}>{technician}</SelectItem>)}</SelectContent></Select>
-            <Input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="h-10 bg-card" aria-label="Filtrar por fecha" />
-          </div>
-        </div>
-
-        <CardContent className="p-0">
-          <DataTable table={table} columnCount={diagnosisColumns.length} emptyState={<div className="mx-auto flex max-w-sm flex-col items-center"><div className="grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground"><ClipboardList className="size-6" /></div><h2 className="mt-4 font-semibold">No encontramos diagnósticos</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Ajuste la búsqueda o los filtros para consultar otros registros.</p><Button variant="outline" size="sm" className="mt-4" onClick={resetFilters}>Limpiar filtros</Button></div>} />
-        </CardContent>
-
-        <DataTablePagination entityLabel="diagnósticos" firstVisibleRow={firstVisibleRow} lastVisibleRow={lastVisibleRow} rowCount={filteredRowCount} pageIndex={pageIndex} pageSize={pageSize} pageCount={table.getPageCount()} canPreviousPage={table.getCanPreviousPage()} canNextPage={table.getCanNextPage()} onPageSizeChange={(value) => table.setPageSize(value)} onPreviousPage={() => table.previousPage()} onNextPage={() => table.nextPage()} />
-      </Card>
+          <CardContent className="p-0"><DataTable table={table} columnCount={columns.length} isLoading={query.isLoading} emptyState={<DiagnosisEmptyState onReset={clearFilters} />} /></CardContent>
+          <DataTablePagination
+            entityLabel="diagnósticos" firstVisibleRow={totalItems === 0 ? 0 : pageIndex * pageSize + 1}
+            lastVisibleRow={Math.min((pageIndex + 1) * pageSize, totalItems)} rowCount={totalItems}
+            pageIndex={pageIndex} pageSize={pageSize} pageCount={result?.totalPages ?? 0}
+            pageSizeOptions={[10, 20, 50, 100]} canPreviousPage={pageIndex > 0}
+            canNextPage={pageIndex + 1 < (result?.totalPages ?? 0)}
+            onPageSizeChange={(value) => { setPageSize(value); setPageIndex(0) }}
+            onPreviousPage={() => setPageIndex((value) => Math.max(0, value - 1))}
+            onNextPage={() => setPageIndex((value) => value + 1)}
+          />
+        </Card>
+      )}
     </div>
   )
 }
 
-function toLocalDateKey(value: string) {
-  const date = new Date(value)
-  const pad = (part: number) => String(part).padStart(2, "0")
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+function DiagnosisEmptyState({ onReset }: { onReset: () => void }) {
+  return <div className="mx-auto flex max-w-sm flex-col items-center"><div className="grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground"><ClipboardList className="size-6" /></div><h2 className="mt-4 font-semibold">No encontramos diagnósticos</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Pruebe con otros criterios de búsqueda.</p><Button variant="outline" size="sm" className="mt-4" onClick={onReset}>Limpiar filtros</Button></div>
 }

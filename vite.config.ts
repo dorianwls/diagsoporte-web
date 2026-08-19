@@ -18,4 +18,12 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.DIAGSOPORTE_API_URL ?? 'http://localhost:5080',
+        changeOrigin: true,
+      },
+    },
+  },
 })

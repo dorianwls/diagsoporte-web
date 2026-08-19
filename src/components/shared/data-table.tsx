@@ -15,12 +15,14 @@ interface DataTableProps<TFeatures extends TableFeatures, TData extends RowData>
   table: ReactTable<TFeatures, TData>
   columnCount: number
   emptyState: ReactNode
+  isLoading?: boolean
 }
 
 export function DataTable<TFeatures extends TableFeatures, TData extends RowData>({
   table,
   columnCount,
   emptyState,
+  isLoading = false,
 }: DataTableProps<TFeatures, TData>) {
   const rows = table.getRowModel().rows
 
@@ -42,7 +44,17 @@ export function DataTable<TFeatures extends TableFeatures, TData extends RowData
         ))}
       </TableHeader>
       <TableBody>
-        {rows.length > 0 ? (
+        {isLoading ? (
+          Array.from({ length: 6 }, (_, rowIndex) => (
+            <TableRow key={`loading-${rowIndex}`} className="hover:bg-transparent">
+              {Array.from({ length: columnCount }, (_, cellIndex) => (
+                <TableCell key={`loading-${rowIndex}-${cellIndex}`} className="px-4 py-4">
+                  <div className="h-4 animate-pulse rounded bg-muted" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))
+        ) : rows.length > 0 ? (
           rows.map((row) => (
             <TableRow key={row.id}>
               {row.getAllCells().map((cell) => (

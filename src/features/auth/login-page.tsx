@@ -7,7 +7,6 @@ import {
   Eye,
   EyeOff,
   FileSearch,
-  KeyRound,
   LoaderCircle,
   LockKeyhole,
   ShieldAlert,
@@ -22,11 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import {
-  demoCredentials,
-  InvalidCredentialsError,
-  signIn,
-} from "@/features/auth/auth-service"
+import { InvalidCredentialsError, signIn } from "@/features/auth/auth-service"
 import { loginSchema, type LoginFormValues } from "@/features/auth/login-schema"
 
 export function LoginPage() {
@@ -46,7 +41,7 @@ export function LoginPage() {
       const session = await signIn(values)
 
       toast.success(`Bienvenido, ${session.fullName}`, {
-        description: "La sesión de demostración se inició correctamente.",
+        description: "Su sesión institucional se inició correctamente.",
       })
       await navigate({ to: "/dashboard" })
     } catch (error) {
@@ -57,11 +52,6 @@ export function LoginPage() {
 
       form.setError("root", { message })
     }
-  }
-
-  function fillDemoCredentials() {
-    form.reset(demoCredentials)
-    form.clearErrors()
   }
 
   return (
@@ -204,27 +194,6 @@ export function LoginPage() {
                 </Button>
               </FieldGroup>
             </form>
-
-            <div className="mt-6 rounded-xl border bg-muted/45 p-4">
-              <div className="flex items-start gap-3">
-                <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-card text-primary ring-1 ring-border">
-                  <KeyRound className="size-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-foreground">Acceso de demostración</p>
-                  <p className="mt-1 font-mono text-xs text-muted-foreground">
-                    dorian · soporte123
-                  </p>
-                  <button
-                    type="button"
-                    onClick={fillDemoCredentials}
-                    className="mt-2 text-xs font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    Completar credenciales
-                  </button>
-                </div>
-              </div>
-            </div>
 
             <p className="mt-6 text-center text-xs text-muted-foreground">
               ¿Problemas para acceder? Contacte al administrador del sistema.

@@ -12,6 +12,8 @@ interface AuditableEntity {
 export interface Area extends AuditableEntity {
   name: string
   isActive: boolean
+  employeeCount: number
+  equipmentCount: number
 }
 
 export interface Employee extends AuditableEntity {
@@ -19,14 +21,22 @@ export interface Employee extends AuditableEntity {
   fullName: string
   nationalId: string
   areaId: EntityId
+  areaName: string
   isActive: boolean
+  equipmentCount: number
+  hasUserAccount: boolean
 }
 
-export interface User extends AuditableEntity {
+export interface User {
+  id: EntityId
   employeeId: EntityId
-  username: string
+  employeeNumber: string
+  fullName: string
+  userName: string
+  email: string
   role: UserRole
   isActive: boolean
+  createdAt: IsoDateTime
 }
 
 export interface Equipment extends AuditableEntity {
@@ -37,8 +47,11 @@ export interface Equipment extends AuditableEntity {
   serialNumber: string
   model: string
   currentResponsibleEmployeeId?: EntityId
+  currentResponsibleName?: string
   currentAreaId?: EntityId
+  currentAreaName?: string
   isActive: boolean
+  diagnosisCount: number
 }
 
 export interface DiagnosisSnapshot {
@@ -59,6 +72,7 @@ export interface DiagnosisSnapshot {
 }
 
 export interface TechnicalDiagnosis extends AuditableEntity {
+  sequenceNumber: number
   code: string
   responsibleEmployeeId: EntityId
   areaId: EntityId
@@ -71,4 +85,9 @@ export interface TechnicalDiagnosis extends AuditableEntity {
   technicalObservations: string
   diagnosis: string
   snapshot: DiagnosisSnapshot
+}
+
+export interface TechnicianOption {
+  id: EntityId
+  fullName: string
 }

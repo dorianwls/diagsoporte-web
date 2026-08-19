@@ -2,12 +2,14 @@ import { Link } from "@tanstack/react-router"
 import { ArrowLeft, Building2, ClipboardList, IdCard, Laptop, Pencil, UserRound } from "lucide-react"
 
 import { PageHeader } from "@/components/shared/page-header"
+import { PageErrorState, PageLoadingState } from "@/components/shared/async-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { findAreaById } from "@/features/areas/area-repository"
+import { hasPermission } from "@/features/auth/auth-service"
 import { findEmployeeById } from "@/features/employees/employee-repository"
+import { useApiQuery } from "@/hooks/use-api-query"
 import { formatShortDate } from "@/lib/formatters"
 
 interface EmployeeDetailPageProps {
@@ -15,11 +17,12 @@ interface EmployeeDetailPageProps {
 }
 
 export function EmployeeDetailPage({ employeeId }: EmployeeDetailPageProps) {
-  const employee = findEmployeeById(employeeId)
+  const query = useApiQuery(`employee:${employeeId}`, (signal) => findEmployeeById(employeeId, signal))
+  const employee = query.data
 
+  if (query.isLoading) return <PageLoadingState label="Cargando ficha del empleado..." />
+  if (query.error) return <PageErrorState error={query.error} onRetry={query.reload} />
   if (!employee) return <EmployeeNotFound />
-
-  const area = findAreaById(employee.areaId)
 
   return (
     <div className="space-y-7">
@@ -30,7 +33,7 @@ export function EmployeeDetailPage({ employeeId }: EmployeeDetailPageProps) {
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline"><Link to="/empleados"><ArrowLeft data-icon="inline-start" />Volver</Link></Button>
-            <Button asChild><Link to="/empleados/$employeeId/editar" params={{ employeeId }}><Pencil data-icon="inline-start" />Editar</Link></Button>
+            {hasPermission("employees:update") && <Button asChild><Link to="/empleados/$employeeId/editar" params={{ employeeId }}><Pencil data-icon="inline-start" />Editar</Link></Button>}
           </div>
         }
       />
@@ -51,7 +54,7 @@ export function EmployeeDetailPage({ employeeId }: EmployeeDetailPageProps) {
             <dl className="grid gap-6 sm:grid-cols-2">
               <DetailItem icon={IdCard} label="Número de empleado" value={employee.employeeNumber} />
               <DetailItem icon={IdCard} label="Cédula" value={employee.nationalId} />
-              <DetailItem icon={Building2} label="Área" value={area?.name ?? "Área no disponible"} />
+              <DetailItem icon={Building2} label="Área" value={employee.areaName} />
               <DetailItem icon={UserRound} label="Nombre completo" value={employee.fullName} />
             </dl>
             <Separator className="my-6" />
@@ -68,7 +71,7 @@ export function EmployeeDetailPage({ employeeId }: EmployeeDetailPageProps) {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <RelatedCard icon={Laptop} title="Equipos asignados" description="Los equipos asociados aparecerán aquí cuando construyamos el inventario." />
+        <RelatedCard icon={Laptop} title="Equipos asignados" description={`${employee.equipmentCount} equipos están actualmente bajo responsabilidad de este empleado.`} />
         <RelatedCard icon={ClipboardList} title="Diagnósticos relacionados" description="El historial permitirá consultar intervenciones donde este empleado figure como responsable." />
       </div>
     </div>

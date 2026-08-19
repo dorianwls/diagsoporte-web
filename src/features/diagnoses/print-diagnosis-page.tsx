@@ -5,18 +5,24 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { PageErrorState, PageLoadingState } from "@/components/shared/async-state"
 import { exportDiagnosisToPdf, exportDiagnosisToWord } from "@/features/diagnoses/diagnosis-export-service"
 import { findDiagnosisById } from "@/features/diagnoses/diagnosis-repository"
 import { DiagnosisReportDocument } from "@/features/diagnoses/diagnosis-report-document"
+import { useApiQuery } from "@/hooks/use-api-query"
+import { getErrorMessage } from "@/lib/api-client"
 
 interface PrintDiagnosisPageProps {
   diagnosisId: string
 }
 
 export function PrintDiagnosisPage({ diagnosisId }: PrintDiagnosisPageProps) {
-  const diagnosis = findDiagnosisById(diagnosisId)
+  const query = useApiQuery(`print-diagnosis:${diagnosisId}`, (signal) => findDiagnosisById(diagnosisId, signal))
+  const diagnosis = query.data
   const [exporting, setExporting] = useState<"word" | "pdf" | null>(null)
 
+  if (query.isLoading) return <PageLoadingState label="Preparando el documento institucional..." />
+  if (query.error) return <PageErrorState error={query.error} onRetry={query.reload} />
   if (!diagnosis) {
     return <Card className="mx-auto max-w-xl py-10 text-center"><CardContent><FileText className="mx-auto size-8 text-muted-foreground" /><h1 className="mt-4 text-xl font-semibold">Diagnóstico no encontrado</h1><Button asChild className="mt-6"><Link to="/diagnosticos">Volver a los diagnósticos</Link></Button></CardContent></Card>
   }
@@ -25,11 +31,11 @@ export function PrintDiagnosisPage({ diagnosisId }: PrintDiagnosisPageProps) {
     if (!diagnosis) return
     setExporting(format)
     try {
-      if (format === "word") await exportDiagnosisToWord(diagnosis)
-      else await exportDiagnosisToPdf(diagnosis)
-      toast.success(`Archivo ${format === "word" ? "Word" : "PDF"} generado correctamente`)
-    } catch {
-      toast.error(`No fue posible generar el archivo ${format === "word" ? "Word" : "PDF"}`)
+      if (format === "word") await exportDiagnosisToWord(diagnosisId)
+      else await exportDiagnosisToPdf(diagnosisId)
+      toast.success(`Archivo ${format === "word" ? "Word" : "PDF"} descargado correctamente`)
+    } catch (error) {
+      toast.error(getErrorMessage(error, `No fue posible descargar el archivo ${format === "word" ? "Word" : "PDF"}`))
     } finally {
       setExporting(null)
     }

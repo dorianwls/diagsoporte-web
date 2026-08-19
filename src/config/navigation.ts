@@ -14,6 +14,7 @@ export interface NavigationItem {
   to: string
   icon: LucideIcon
   exact?: boolean
+  permission: string
 }
 
 export interface NavigationGroup {
@@ -29,6 +30,7 @@ export const navigationGroups: NavigationGroup[] = [
         to: "/dashboard",
         icon: LayoutDashboard,
         exact: true,
+        permission: "dashboard:read",
       },
     ],
   },
@@ -40,21 +42,23 @@ export const navigationGroups: NavigationGroup[] = [
         to: "/diagnosticos",
         icon: ClipboardList,
         exact: true,
+        permission: "diagnoses:read",
       },
       {
         label: "Nuevo diagnóstico",
         to: "/diagnosticos/nuevo",
         icon: Plus,
         exact: true,
+        permission: "diagnoses:create",
       },
     ],
   },
   {
     label: "Inventario institucional",
     items: [
-      { label: "Equipos", to: "/equipos", icon: Laptop },
-      { label: "Empleados", to: "/empleados", icon: Users },
-      { label: "Áreas", to: "/areas", icon: Building2 },
+      { label: "Equipos", to: "/equipos", icon: Laptop, permission: "equipment:read" },
+      { label: "Empleados", to: "/empleados", icon: Users, permission: "employees:read" },
+      { label: "Áreas", to: "/areas", icon: Building2, permission: "areas:read" },
     ],
   },
   {
@@ -64,6 +68,7 @@ export const navigationGroups: NavigationGroup[] = [
         label: "Usuarios",
         to: "/administracion/usuarios",
         icon: UserRoundCog,
+        permission: "users:read",
       },
     ],
   },

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { ArrowDown, ArrowUp, ArrowUpDown, CircleOff, Eye, MoreHorizontal, Pencil, RotateCcw } from "lucide-react"
+import { CircleOff, Eye, MoreHorizontal, Pencil, RotateCcw } from "lucide-react"
 import {
   columnFilteringFeature,
   createFilteredRowModel,
@@ -17,6 +17,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ServerSortButton, type ServerSorting } from "@/components/shared/server-sort-button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,9 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type { Employee } from "@/types/domain"
 
-export interface EmployeeTableRow extends Employee {
-  areaName: string
-}
+export type EmployeeTableRow = Employee
 
 export const employeeTableFeatures = tableFeatures({
   columnFilteringFeature,
@@ -45,25 +44,27 @@ export const employeeTableFeatures = tableFeatures({
 
 interface EmployeeColumnsOptions {
   onStatusRequest: (employee: Employee) => void
+  sorting: ServerSorting
+  onSortingChange: (sorting: ServerSorting) => void
+  canManage: boolean
 }
 
 export function createEmployeeColumns({
   onStatusRequest,
+  sorting,
+  onSortingChange,
+  canManage,
 }: EmployeeColumnsOptions): ColumnDef<typeof employeeTableFeatures, EmployeeTableRow>[] {
   return [
     {
       accessorKey: "employeeNumber",
-      header: ({ column }) => (
-        renderSortButton("N.º empleado", column.getIsSorted(), () => column.toggleSorting(column.getIsSorted() === "asc"))
-      ),
+      header: () => <ServerSortButton label="N.º empleado" column="employeeNumber" sorting={sorting} onChange={onSortingChange} />,
       cell: ({ row }) => <span className="font-mono text-xs font-semibold">{row.original.employeeNumber}</span>,
       sortFn: "text",
     },
     {
       accessorKey: "fullName",
-      header: ({ column }) => (
-        renderSortButton("Empleado", column.getIsSorted(), () => column.toggleSorting(column.getIsSorted() === "asc"))
-      ),
+      header: () => <ServerSortButton label="Empleado" column="fullName" sorting={sorting} onChange={onSortingChange} />,
       cell: ({ row }) => (
         <Link
           to="/empleados/$employeeId"
@@ -83,9 +84,7 @@ export function createEmployeeColumns({
     },
     {
       accessorKey: "areaName",
-      header: ({ column }) => (
-        renderSortButton("Área", column.getIsSorted(), () => column.toggleSorting(column.getIsSorted() === "asc"))
-      ),
+      header: () => <ServerSortButton label="Área" column="areaName" sorting={sorting} onChange={onSortingChange} />,
       filterFn: "equals",
       sortFn: "text",
     },
@@ -111,6 +110,8 @@ export function createEmployeeColumns({
       header: () => <span className="sr-only">Acciones</span>,
       cell: ({ row }) => {
         const employee = row.original
+        if (!canManage) return null
+
         return (
           <div className="text-right">
             <DropdownMenu>
@@ -139,13 +140,4 @@ export function createEmployeeColumns({
       enableSorting: false,
     },
   ]
-}
-
-function renderSortButton(label: string, direction: false | "asc" | "desc", onClick: () => void) {
-  return (
-    <Button variant="ghost" size="sm" className="-ml-2" onClick={onClick}>
-      {label}
-      {direction === "asc" ? <ArrowUp data-icon="inline-end" /> : direction === "desc" ? <ArrowDown data-icon="inline-end" /> : <ArrowUpDown className="opacity-45" data-icon="inline-end" />}
-    </Button>
-  )
 }

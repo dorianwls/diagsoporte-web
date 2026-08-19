@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, IdCard, Info, LoaderCircle, Save, UserRound } from "lucide-react"
@@ -5,6 +6,7 @@ import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { PageHeader } from "@/components/shared/page-header"
+import { PageErrorState, PageLoadingState } from "@/components/shared/async-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,15 +22,15 @@ import {
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { listAreas } from "@/features/areas/area-repository"
+import { listAllAreas } from "@/features/areas/area-repository"
 import {
   createEmployee,
-  DuplicateEmployeeNumberError,
-  DuplicateNationalIdError,
   findEmployeeById,
   updateEmployee,
 } from "@/features/employees/employee-repository"
 import { employeeFormSchema, type EmployeeFormValues } from "@/features/employees/employee-schema"
+import { useApiQuery } from "@/hooks/use-api-query"
+import { ApiError, getErrorMessage } from "@/lib/api-client"
 
 interface EmployeeFormPageProps {
   employeeId?: string
@@ -36,22 +38,42 @@ interface EmployeeFormPageProps {
 
 export function EmployeeFormPage({ employeeId }: EmployeeFormPageProps) {
   const navigate = useNavigate()
-  const employee = employeeId ? findEmployeeById(employeeId) : undefined
   const isEditing = Boolean(employeeId)
-  const areas = listAreas().filter((area) => area.isActive || area.id === employee?.areaId)
+  const query = useApiQuery(`employee-form:${employeeId ?? "new"}`, async (signal) => {
+    const [employee, allAreas] = await Promise.all([
+      employeeId ? findEmployeeById(employeeId, signal) : Promise.resolve(null),
+      listAllAreas(undefined, signal),
+    ])
+    return { employee, areas: allAreas.filter((area) => area.isActive || area.id === employee?.areaId) }
+  })
+  const employee = query.data?.employee
+  const areas = query.data?.areas ?? []
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
-      employeeNumber: employee?.employeeNumber ?? "",
-      fullName: employee?.fullName ?? "",
-      nationalId: employee?.nationalId ?? "",
-      areaId: employee?.areaId ?? "",
-      isActive: employee?.isActive ?? true,
+      employeeNumber: "",
+      fullName: "",
+      nationalId: "",
+      areaId: "",
+      isActive: true,
     },
     mode: "onTouched",
   })
 
-  if (isEditing && !employee) return <EmployeeNotFound />
+  useEffect(() => {
+    if (employee) {
+      form.reset({
+        employeeNumber: employee.employeeNumber,
+        fullName: employee.fullName,
+        nationalId: employee.nationalId,
+        areaId: employee.areaId,
+        isActive: employee.isActive,
+      })
+    }
+  }, [employee, form])
+
+  if (query.isLoading) return <PageLoadingState label="Cargando datos del empleado..." />
+  if (query.error) return <PageErrorState error={query.error} onRetry={query.reload} />
 
   async function onSubmit(values: EmployeeFormValues) {
     try {
@@ -64,15 +86,14 @@ export function EmployeeFormPage({ employeeId }: EmployeeFormPageProps) {
       }
       await navigate({ to: "/empleados" })
     } catch (error) {
-      if (error instanceof DuplicateEmployeeNumberError) {
-        form.setError("employeeNumber", { message: error.message }, { shouldFocus: true })
+      if (error instanceof ApiError && error.status === 409) {
+        const field = error.message.toLocaleLowerCase("es").includes("cédula")
+          ? "nationalId"
+          : "employeeNumber"
+        form.setError(field, { message: error.message }, { shouldFocus: true })
         return
       }
-      if (error instanceof DuplicateNationalIdError) {
-        form.setError("nationalId", { message: error.message }, { shouldFocus: true })
-        return
-      }
-      form.setError("root", { message: "No fue posible guardar el empleado. Intente nuevamente." })
+      form.setError("root", { message: getErrorMessage(error, "No fue posible guardar el empleado. Intente nuevamente.") })
     }
   }
 
@@ -203,18 +224,5 @@ export function EmployeeFormPage({ employeeId }: EmployeeFormPageProps) {
         </div>
       </form>
     </div>
-  )
-}
-
-function EmployeeNotFound() {
-  return (
-    <Card className="mx-auto max-w-xl py-10 text-center shadow-sm">
-      <CardContent>
-        <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground"><UserRound className="size-6" /></div>
-        <h1 className="mt-5 text-xl font-semibold">Empleado no encontrado</h1>
-        <p className="mt-2 text-sm text-muted-foreground">El registro solicitado no existe o ya no está disponible.</p>
-        <Button asChild className="mt-6"><Link to="/empleados">Volver a los empleados</Link></Button>
-      </CardContent>
-    </Card>
   )
 }
