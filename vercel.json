@@ -1,8 +1,8 @@
 {
    "rewrites": [
       {
-         "source": "/api/(.*)",
-         "destination": "http://165.98.144.92:5080/api/$1"
+         "source": "/api/:path*",
+         "destination": "https://diagsoporte-backend.onrender.com/api/:path*"
       },
       {
          "source": "/(.*)",
